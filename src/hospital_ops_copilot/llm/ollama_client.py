@@ -79,6 +79,34 @@ class OllamaClient:
             raw=data,
         )
 
+    def chat_stream(self, messages: list[dict], model: str | None = None, tools: list[dict] | None = None,
+                    temperature: float = 0.0, num_ctx: int = 8192, think: bool | None = None):
+        """Yield Ollama's NDJSON chunks: message deltas, tool calls, and a final chunk with token counts."""
+        import json
+
+        model = model or self.settings.chat_model
+        payload: dict = {"model": model, "messages": messages, "stream": True,
+                         "options": {"temperature": temperature, "num_ctx": num_ctx}, "keep_alive": "15m"}
+        if tools:
+            payload["tools"] = tools
+        if think is None and model.split(":")[0] in THINKING_FAMILIES:
+            think = False
+        if think is not None:
+            payload["think"] = think
+        try:
+            with self._http.stream("POST", "/api/chat", json=payload) as r:
+                if r.status_code != 200:
+                    r.read()
+                    raise OllamaError(f"Ollama error {r.status_code}: {r.text[:300]}")
+                for line in r.iter_lines():
+                    if line.strip():
+                        chunk = json.loads(line)
+                        if chunk.get("error"):
+                            raise OllamaError(chunk["error"])
+                        yield chunk
+        except httpx.HTTPError as e:
+            raise OllamaError(f"Cannot reach Ollama at {self.host}: {e}") from e
+
     def embed(self, texts: list[str], model: str | None = None, batch: int = 32) -> list[list[float]]:
         model = model or self.settings.embed_model
         out: list[list[float]] = []

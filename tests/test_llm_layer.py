@@ -148,3 +148,44 @@ def test_api(monkeypatch, store, retriever, sample_ccn):
     assert s["delta"]["operating_income"] > 0
     r = client.post("/ask", json={"question": "How do we compare?", "ccn": sample_ccn, "offline": True}).json()
     assert r["backend"] == "offline" and r["tools_called"]
+
+
+def test_api_stream_and_insights(monkeypatch, store, retriever, sample_ccn):
+    import json as _json
+
+    from hospital_ops_copilot.api import main
+
+    monkeypatch.setattr(main, "get_store", lambda: store)
+    monkeypatch.setattr(main, "_copilot", Copilot(store=store, retriever=retriever, model="none"))
+    client = TestClient(main.app)
+    ins = client.get(f"/hospitals/{sample_ccn}/insights", params={"year": 2023}).json()
+    assert ins["insights"] and all(i["kind"] in {"risk", "strength", "opportunity"} for i in ins["insights"])
+    prof = client.get(f"/hospitals/{sample_ccn}").json()
+    assert prof["available_years"] == [2022, 2023]
+    with client.stream("POST", "/ask/stream", json={"question": "How do we compare?", "ccn": sample_ccn,
+                                                    "offline": True}) as r:
+        events = [_json.loads(line[6:]) for line in r.iter_lines() if line.startswith("data: ")]
+    types = [e["type"] for e in events]
+    assert types[0] == "start" and types[-1] == "final"
+    assert "tool_start" in types and "tool_end" in types and "token" in types
+    final = events[-1]
+    assert final["answer"] == "".join(e["text"] for e in events if e["type"] == "token")
+    assert final["followups"]
+
+
+def test_streaming_agent_with_fake_model(store, retriever, sample_ccn):
+    class StreamingFake(FakeClient):
+        def chat_stream(self, messages, model=None, tools=None, **kw):
+            res = self.chat(messages, model, tools)
+            if res.tool_calls:
+                yield {"message": {"content": "", "tool_calls": res.tool_calls}}
+            else:
+                for word in res.content.split(" "):
+                    yield {"message": {"content": word + " "}}
+            yield {"done": True, "eval_count": 5, "prompt_eval_count": 50}
+
+    c = Copilot(store=store, retriever=retriever, client=StreamingFake(sample_ccn), model="fake")
+    events = list(c.stream("How do we compare?", context_ccn=sample_ccn))
+    types = [e["type"] for e in events]
+    assert types[0] == "start" and "tool_start" in types and "token" in types and types[-1] == "final"
+    assert events[-1]["tools_called"] == ["benchmark_hospital"]

@@ -1,0 +1,123 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Design tokens. Dark mode first; light mode is a full peer, not an afterthought. */
+:root {
+  --background: oklch(0.985 0.002 260);
+  --foreground: oklch(0.21 0.02 265);
+  --muted: oklch(0.55 0.02 265);
+  --surface: oklch(1 0 0 / 0.72);
+  --surface-strong: oklch(1 0 0);
+  --border: oklch(0.21 0.02 265 / 0.09);
+  --ring: oklch(0.58 0.2 277);
+  --accent: oklch(0.58 0.2 277);
+  --accent-2: oklch(0.68 0.16 200);
+  --grid: oklch(0.21 0.02 265 / 0.06);
+  --chart-1: oklch(0.58 0.2 277);
+  --chart-2: oklch(0.7 0.02 265);
+}
+
+.dark {
+  --background: oklch(0.145 0.012 270);
+  --foreground: oklch(0.96 0.005 265);
+  --muted: oklch(0.68 0.015 265);
+  --surface: oklch(0.21 0.015 270 / 0.6);
+  --surface-strong: oklch(0.2 0.014 270);
+  --border: oklch(1 0 0 / 0.08);
+  --ring: oklch(0.7 0.17 277);
+  --accent: oklch(0.7 0.17 277);
+  --accent-2: oklch(0.78 0.13 195);
+  --grid: oklch(1 0 0 / 0.06);
+  --chart-1: oklch(0.72 0.17 277);
+  --chart-2: oklch(0.6 0.02 265);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-surface: var(--surface);
+  --color-surface-strong: var(--surface-strong);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-aurora: aurora 18s ease-in-out infinite alternate;
+}
+
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to { background-position: 200% 0; }
+}
+
+@keyframes aurora {
+  0% { transform: translate3d(-10%, -6%, 0) rotate(0deg) scale(1); }
+  100% { transform: translate3d(8%, 6%, 0) rotate(12deg) scale(1.15); }
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "ss01", "cv11";
+}
+
+/* Tabular figures everywhere numbers line up. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Glass surface: translucent panel over the aurora background. */
+.glass {
+  background: var(--surface);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid var(--border);
+}
+
+.text-gradient {
+  background: linear-gradient(100deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--border) 25%, color-mix(in oklch, var(--border) 40%, transparent) 50%, var(--border) 75%);
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+}
+
+/* Markdown inside copilot answers */
+.prose-chat p { margin: 0.4rem 0; }
+.prose-chat ul { list-style: disc; padding-left: 1.1rem; margin: 0.4rem 0; }
+.prose-chat ol { list-style: decimal; padding-left: 1.2rem; margin: 0.4rem 0; }
+.prose-chat li { margin: 0.15rem 0; }
+.prose-chat strong { font-weight: 600; }
+.prose-chat table { font-size: 0.8rem; margin: 0.5rem 0; }
+.prose-chat td, .prose-chat th { padding: 0.15rem 0.5rem; border-bottom: 1px solid var(--border); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Thin scrollbars */
+* { scrollbar-width: thin; scrollbar-color: color-mix(in oklch, var(--muted) 40%, transparent) transparent; }
