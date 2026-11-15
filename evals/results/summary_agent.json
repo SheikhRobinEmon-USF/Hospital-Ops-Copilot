@@ -2,11 +2,21 @@
   "offline": {
     "cases": 12,
     "tool_accuracy": 0.917,
-    "answer_accuracy": 0.667,
+    "answer_accuracy": 0.75,
     "grounding_mean": 0.992,
     "fully_grounded_rate": 0.917,
     "latency_p50_s": 0.0,
     "latency_max_s": 1.1,
     "fell_back_offline": 12
+  },
+  "qwen3.5:4b": {
+    "cases": 12,
+    "tool_accuracy": 1.0,
+    "answer_accuracy": 1.0,
+    "grounding_mean": 1.0,
+    "fully_grounded_rate": 1.0,
+    "latency_p50_s": 59.2,
+    "latency_max_s": 113.3,
+    "fell_back_offline": 0
   }
 }

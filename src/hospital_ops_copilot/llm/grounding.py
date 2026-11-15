@@ -116,8 +116,22 @@ def evidence_numbers(tool_data: list[Any]) -> list[float]:
     return out
 
 
+_MONTHS = r"(jan(uary)?|feb(ruary)?|mar(ch)?|apr(il)?|may|june?|july?|aug(ust)?|sep(t(ember)?)?|oct(ober)?|nov(ember)?|dec(ember)?)"
+_DATE_BEFORE = re.compile(_MONTHS + r"\.?\s+$", re.I)
+_ISO_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+
+
+def is_date_context(answer: str, start: int, end: int) -> bool:
+    """True when the number at answer[start:end] is part of a date (September 30, 2023-09-30)."""
+    if _DATE_BEFORE.search(answer[max(0, start - 12):start]):
+        return True
+    return any(m.start() <= start < m.end() for m in _ISO_DATE.finditer(answer))
+
+
 def _skip(text: str, value: float, start: int, answer: str) -> bool:
     """Ignore numbers that are not quantitative claims."""
+    if is_date_context(answer, start, start + len(text)):
+        return True
     raw = text.strip().lstrip("$-−")
     if re.fullmatch(r"(19|20)\d\d", raw):  # years
         return True

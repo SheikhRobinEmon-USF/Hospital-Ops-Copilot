@@ -22,6 +22,11 @@ def test_grounding_flags_invented_numbers():
     assert rep.score == 0
 
 
+def test_grounding_ignores_dates():
+    rep = grounding.check("The period ran from October 1, 2022 to September 30, 2023 (2023-09-30).", [{}])
+    assert rep.total == 0
+
+
 def test_grounding_ignores_years_ccns_and_list_numbers():
     rep = grounding.check("1. In 2023, hospital 100128 had 3 areas to fix.", [{}])
     assert rep.total == 0 and rep.score == 1.0

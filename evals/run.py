@@ -140,6 +140,25 @@ def run_retrieval(embed_models: list[str]) -> dict:
     return summary
 
 
+def _regrade(old: dict) -> dict:
+    """Re-apply the current skip rules (for example dates) to saved ungrounded numbers."""
+    from hospital_ops_copilot.llm.grounding import is_date_context
+
+    g = dict(old["grounding"])
+    answer = old["answer"]
+    keep = []
+    for tok in g.get("ungrounded", []):
+        spots = [m.start() for m in re.finditer(re.escape(tok), answer)]
+        if not spots or not all(is_date_context(answer, i, i + len(tok)) for i in spots):
+            keep.append(tok)
+    dropped = len(g.get("ungrounded", [])) - len(keep)
+    if dropped:
+        g["numbers_checked"] -= dropped
+        g["ungrounded"] = keep
+        g["score"] = round(1.0 if not g["numbers_checked"] else g["numbers_grounded"] / g["numbers_checked"], 3)
+    return g
+
+
 def rescore() -> dict:
     """Re-score saved agent answers with the current cases and scorer, without re-running models."""
     from types import SimpleNamespace
@@ -153,9 +172,10 @@ def rescore() -> dict:
         rows = []
         for line in path.read_text().splitlines():
             old = json.loads(line)
+            regraded = _regrade(old)
             ans = SimpleNamespace(tools_called=old["tools_called"], answer=old["answer"], latency_s=old["latency_s"],
                                   steps=old["steps"], completion_tokens=old["completion_tokens"], backend=old["backend"],
-                                  notes=old["notes"], grounding=SimpleNamespace(to_dict=lambda g=old["grounding"]: g))
+                                  notes=old["notes"], grounding=SimpleNamespace(to_dict=lambda g=regraded: g))
             rows.append(score_case(cases[old["id"]], ans))
         path.write_text("".join(json.dumps(r, default=str) + "\n" for r in rows))
         stem = path.stem.removeprefix("agent_")
@@ -225,5 +245,5 @@ def main(args) -> int:
     elif args.suite == "retrieval":
         run_retrieval(args.embed_models or [s.embed_model])
     else:
-        run_agent(args.models or [s.chat_model], args.offline, args.limit)
+        run_agent(args.models if args.models is not None else [s.chat_model], args.offline, args.limit)
     return 0
