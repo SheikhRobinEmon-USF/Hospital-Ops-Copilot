@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { HospitalHeader, Overview } from "@/components/sections/overview";
 import { ErrorState, Skeleton } from "@/components/ui/primitives";
 import { API_URL } from "@/lib/api";
-import { useHealth } from "@/lib/queries";
+import { useBenchmark, useHealth, useInsights, useProfile } from "@/lib/queries";
 import { useWorkspace, WorkspaceProvider } from "@/lib/workspace";
 
 import { AuroraBackground, Sidebar, Topbar } from "./shell";
@@ -19,7 +19,14 @@ const Opportunities = dynamic(() => import("@/components/sections/opportunities"
 const Trends = dynamic(() => import("@/components/sections/trends").then((m) => m.Trends), { loading });
 const Scenario = dynamic(() => import("@/components/sections/scenario").then((m) => m.Scenario), { loading });
 const Market = dynamic(() => import("@/components/sections/market").then((m) => m.Market), { loading });
-const CopilotPanel = dynamic(() => import("@/components/copilot/copilot-panel").then((m) => m.CopilotPanel), { ssr: false });
+// Same footprint as the docked panel: shown before the panel mounts and while its chunk downloads.
+function CopilotPlaceholder() {
+  return <div aria-hidden className="glass hidden h-dvh w-[440px] shrink-0 border-y-0 border-r-0 xl:sticky xl:top-0 xl:block" />;
+}
+const CopilotPanel = dynamic(() => import("@/components/copilot/copilot-panel").then((m) => m.CopilotPanel), {
+  ssr: false,
+  loading: () => <CopilotPlaceholder />,
+});
 const CommandPalette = dynamic(() => import("./command-palette").then((m) => m.CommandPalette), { ssr: false });
 
 /**
@@ -48,7 +55,7 @@ function DeferredChrome() {
         <CopilotPanel />
       ) : (
         // Reserve the docked panel's width on wide screens so mounting it causes no layout shift.
-        copilotOpen && <div aria-hidden className="glass hidden h-dvh w-[440px] shrink-0 border-y-0 border-r-0 xl:sticky xl:top-0 xl:block" />
+        copilotOpen && <CopilotPlaceholder />
       )}
       {paletteUsed && <CommandPalette />}
     </>
@@ -65,6 +72,36 @@ function SectionView() {
       </m.div>
     </AnimatePresence>
   );
+}
+
+function FirstViewSkeleton() {
+  return (
+    <div className="space-y-8" aria-busy="true" aria-label="Loading hospital">
+      <div className="flex flex-col gap-3">
+        <Skeleton className="h-4 w-72" />
+        <Skeleton className="h-10 w-96 max-w-full" />
+        <Skeleton className="h-6 w-[36rem] max-w-full" />
+      </div>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-[74px]" />)}</div>
+      <Skeleton className="h-[196px]" />
+      <Skeleton className="h-[360px]" />
+    </div>
+  );
+}
+
+/**
+ * Show one skeleton until the first view's data (fetched in parallel, started before hydration) is all
+ * here, then insert the real page in one step. Inserting new content is not a layout shift; growing a
+ * header whose pills wrap differently at every width would be. Later changes keep previous data on screen.
+ */
+function FirstView({ children }: { children: React.ReactNode }) {
+  const { section } = useWorkspace();
+  const profile = useProfile();
+  const bm = useBenchmark();
+  const insights = useInsights();
+  const waiting = !profile.data || (section === "overview" && (!bm.data || !insights.data) && !bm.isError && !insights.isError);
+  if (profile.isError) return <ErrorState title="Could not load this hospital" detail={String(profile.error)} />;
+  return waiting ? <FirstViewSkeleton /> : <>{children}</>;
 }
 
 function ApiGate({ children }: { children: React.ReactNode }) {
@@ -93,8 +130,10 @@ export function Dashboard() {
           <Topbar />
           <main id="main" className="mx-auto w-full max-w-[1400px] flex-1 space-y-8 px-4 py-6 lg:px-8 lg:py-8">
             <ApiGate>
-              <HospitalHeader />
-              <SectionView />
+              <FirstView>
+                <HospitalHeader />
+                <SectionView />
+              </FirstView>
             </ApiGate>
           </main>
         </div>

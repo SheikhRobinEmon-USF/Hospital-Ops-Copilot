@@ -67,7 +67,7 @@ export function KpiCard({ row, def, spark, peerSpark }: { row: KpiRow; def?: Kpi
     diff === null ? "" : unit === "pct" ? `${diff >= 0 ? "+" : ""}${(diff * 100).toFixed(1)} pts` : `${diff >= 0 ? "+" : "-"}${formatKpi(unit, Math.abs(diff))}`;
   return (
     <m.div variants={rise}>
-      <Card className="group h-full p-4 transition hover:shadow-lg hover:shadow-[var(--accent)]/5">
+      <Card className="group h-full min-h-[130px] p-4 transition hover:shadow-lg hover:shadow-[var(--accent)]/5 sm:min-h-[146px]">
         <div className="flex items-start justify-between gap-2">
           <Tooltip content={<><p className="font-medium">{row.label}</p><p className="mt-1 text-muted">{def?.description}</p><p className="mt-1.5 font-mono text-[10px] text-muted">{def?.formula}</p></>}>
             <p className="line-clamp-2 flex cursor-help items-center gap-1 text-xs font-medium text-muted">
@@ -107,7 +107,7 @@ function InsightCard({ insight }: { insight: Insight }) {
       className="group relative overflow-hidden rounded-2xl p-px text-left"
     >
       <span className={cn("absolute inset-0 bg-gradient-to-br to-transparent", tone.ring)} />
-      <span className="glass relative flex h-full flex-col gap-2 rounded-[15px] p-4">
+      <span className="glass relative flex h-full min-h-[134px] flex-col gap-2 rounded-[15px] p-4 md:min-h-[194px]">
         <span className={cn("flex items-center gap-2 text-xs font-medium uppercase tracking-wider [&_svg]:size-3.5", tone.color)}>
           {tone.icon}
           {insight.kind}
@@ -166,7 +166,7 @@ export function Overview() {
           <span className="hidden text-xs text-muted sm:inline">Computed from the benchmark. Click any card to ask the copilot why.</span>
         </div>
         {insights.isPending ? (
-          <div className="grid gap-3 md:grid-cols-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-36" />)}</div>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{[0, 1, 2].map((i) => <Skeleton key={i} className={cn("h-[136px] md:h-[196px]", i === 2 && "hidden xl:block")} />)}</div>
         ) : (
           <m.div variants={stagger} initial="hidden" animate="show" className="grid gap-3 md:grid-cols-2 xl:grid-cols-3" key={insights.data?.insights.map((i) => i.title).join()}>
             {insights.data?.insights.slice(0, 6).map((i) => <InsightCard key={i.title} insight={i} />)}
@@ -182,7 +182,7 @@ export function Overview() {
             description="Value, gap to the peer median, and 4-year trend (dashed line: peer median)."
           />
           {bm.isPending ? (
-            <div className="grid gap-3 px-5 pt-4 [grid-template-columns:repeat(auto-fill,minmax(230px,1fr))]">{HEADLINE.map((k) => <Skeleton key={k} className="h-32" />)}</div>
+            <div className="grid gap-3 px-5 pt-4 [grid-template-columns:repeat(auto-fill,minmax(230px,1fr))]">{HEADLINE.map((k) => <Skeleton key={k} className="h-[130px] sm:h-[146px]" />)}</div>
           ) : (
             <m.div variants={stagger} initial="hidden" animate="show" className="grid gap-3 px-5 pt-4 [grid-template-columns:repeat(auto-fill,minmax(230px,1fr))]">
               {rows.map((r) => (

@@ -32,6 +32,15 @@ copilot. It talks to the FastAPI service in the repository root; every figure on
 
 ## Performance
 
+Lighthouse 12 on the production build (`next build && next start`), dashboard for Tampa General Hospital:
+
+| Preset | Performance | Accessibility | Best practices | SEO | LCP | TBT | CLS |
+|---|---|---|---|---|---|---|---|
+| Desktop | 100 | 100 | 100 | 100 | 0.8 s | 50 ms | 0.004 |
+| Mobile (simulated slow 4G, 4x CPU throttle) | 75 | 100 | 100 | 100 | 3.8 s | 550 ms | 0 |
+
+How:
+
 - The page is a static, prerendered shell (27 KB of HTML).
 - A small inline script starts the first view's API requests before the JavaScript bundle loads, so the hospital name
   and KPIs paint as soon as React hydrates.
@@ -40,6 +49,11 @@ copilot. It talks to the FastAPI service in the repository root; every figure on
 - The animation engine loads asynchronously (`LazyMotion`).
 - The API gzips responses and caches computed benchmarks in memory (a cache hit is about 2 ms).
 - Fonts are self-hosted (Geist), with no layout shift from late-loading fonts.
+- No layout shift: the first view swaps from one skeleton to the full page in a single step, and the docked copilot's
+  width is reserved before its code arrives.
+
+Next step for mobile: server-render the first view's data so the largest element paints without waiting for
+hydration.
 
 ## Run
 

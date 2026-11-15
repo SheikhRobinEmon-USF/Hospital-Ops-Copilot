@@ -65,6 +65,8 @@
 
 html {
   color-scheme: light;
+  /* Reserve the scrollbar's width so content does not reflow when the page first becomes scrollable. */
+  scrollbar-gutter: stable;
 }
 html.dark {
   color-scheme: dark;
