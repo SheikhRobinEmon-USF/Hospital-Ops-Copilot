@@ -40,7 +40,7 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("ui", help="Run the Streamlit app")
 
     e = sub.add_parser("eval", help="Run evaluations")
-    e.add_argument("suite", choices=["retrieval", "agent", "rescore"])
+    e.add_argument("suite", choices=["retrieval", "agent", "rescore", "report"])
     e.add_argument("--models", nargs="*")
     e.add_argument("--embed-models", nargs="*")
     e.add_argument("--limit", type=int)

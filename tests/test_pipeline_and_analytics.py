@@ -113,3 +113,10 @@ def test_search(store, sample_ccn):
 def test_not_found(store):
     with pytest.raises(bm.NotFoundError):
         bm.benchmark(store, "999999", 2023)
+
+
+def test_glossary_doc_in_sync_with_code():
+    from pathlib import Path
+
+    doc = Path(__file__).resolve().parents[1] / "docs" / "kpi_glossary.md"
+    assert doc.read_text() == glossary_markdown(), "Regenerate docs/kpi_glossary.md from analytics.kpis"

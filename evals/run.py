@@ -165,6 +165,49 @@ def rescore() -> dict:
     return summary
 
 
+def _agent_table(agent: dict) -> str:
+    rows = ["| Model | Tool selection | Answer accuracy | Grounded answers | Mean grounding | p50 latency (CPU) |",
+            "|---|---|---|---|---|---|"]
+    order = sorted(agent.items(), key=lambda kv: (kv[0] != "offline", -kv[1]["answer_accuracy"],
+                                                  -kv[1]["fully_grounded_rate"], kv[1]["latency_p50_s"]))
+    for model, m in order:
+        name = "offline analyst (no LLM)*" if model == "offline" else f"`{model}`"
+        g = "n/a" if m["grounding_mean"] is None else f"{m['grounding_mean']:.0%}"
+        rows.append(f"| {name} | {m['tool_accuracy']:.0%} | {m['answer_accuracy']:.0%} | "
+                    f"{m['fully_grounded_rate']:.0%} | {g} | {m['latency_p50_s']:.0f} s |")
+    return "\n".join(rows)
+
+
+def _retrieval_table(ret: dict) -> str:
+    rows = ["| Retriever | hit@1 | hit@3 | MRR | Query latency |", "|---|---|---|---|---|"]
+    for name, m in ret.items():
+        rows.append(f"| {name} | {m['hit@1']:.2f} | {m['hit@3']:.2f} | {m['mrr']:.3f} | {m['query_latency_ms_p50']:.0f} ms |")
+    return "\n".join(rows)
+
+
+def report() -> str:
+    """Write result tables into README.md and docs/model_selection.md between marker comments."""
+    root = Path(__file__).resolve().parents[1]
+    agent = json.loads((RESULTS / "summary_agent.json").read_text())
+    ret = json.loads((RESULTS / "summary_retrieval.json").read_text())
+    n = next(iter(agent.values()))["cases"]
+    note = (f"Agent suite: {n} questions covering lookups, peer comparison, opportunities, trends, what-if "
+            "scenarios, rankings, and definitions. *Tool selection*: the expected tool was called. *Answer "
+            "accuracy*: every expected figure (computed from the data) and keyword appears in the answer. "
+            "*Grounded answers*: every number in the answer traces to tool output.\n\n"
+            "\\* The offline analyst is a keyword router that was debugged on these questions, so its score is "
+            "an upper bound, not a held-out result. The LLM prompts were not tuned on this set.")
+    block = (f"{_agent_table(agent)}\n\n{note}\n\nRetrieval suite: {len(RETRIEVAL_CASES)} questions over "
+             f"the KPI glossary, methodology, and CMS data dictionary.\n\n{_retrieval_table(ret)}")
+    for rel, start, end in (("README.md", "<!-- EVAL_TABLE_START -->", "<!-- EVAL_TABLE_END -->"),
+                            ("docs/model_selection.md", "<!-- MODEL_RESULTS_START -->", "<!-- MODEL_RESULTS_END -->")):
+        path = root / rel
+        text = path.read_text()
+        a, b = text.index(start) + len(start), text.index(end)
+        path.write_text(text[:a] + "\n" + block + "\n" + text[b:])
+    return block
+
+
 def _write_summary(suite: str, summary: dict) -> None:
     RESULTS.mkdir(exist_ok=True)
     path = RESULTS / f"summary_{suite}.json"
@@ -175,7 +218,9 @@ def _write_summary(suite: str, summary: dict) -> None:
 
 def main(args) -> int:
     s = get_settings()
-    if args.suite == "rescore":
+    if args.suite == "report":
+        print(report())
+    elif args.suite == "rescore":
         print(json.dumps(rescore(), indent=2))
     elif args.suite == "retrieval":
         run_retrieval(args.embed_models or [s.embed_model])

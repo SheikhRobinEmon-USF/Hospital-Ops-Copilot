@@ -128,7 +128,7 @@ def benchmark_tab(b: dict) -> None:
     band = alt.Chart(pd.DataFrame({"x": [25], "x2": [75]})).mark_rect(opacity=0.12, color="#607d8b").encode(x="x:Q", x2="x2:Q")
     dots = base.mark_circle(size=160).encode(
         x=alt.X("percentile:Q", scale=alt.Scale(domain=[0, 100]), title="Percentile among peers"),
-        color=alt.Color("status:N", scale=alt.Scale(domain=list(STATUS_COLORS), range=list(STATUS_COLORS.values())),
+        color=alt.Color("status:N", scale=alt.Scale(domain=list(STATUS_COLORS)[:-1], range=list(STATUS_COLORS.values())[:-1]),
                         legend=alt.Legend(orient="bottom", title=None)),
         tooltip=["label", "value_fmt", "peer_median_fmt", "peer_range_fmt", "percentile", "status", "peers_with_data"])
     st.altair_chart(band + dots, width="stretch")
