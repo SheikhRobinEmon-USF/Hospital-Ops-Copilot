@@ -18,5 +18,15 @@
     "latency_p50_s": 59.2,
     "latency_max_s": 113.3,
     "fell_back_offline": 0
+  },
+  "llama3.2:3b": {
+    "cases": 12,
+    "tool_accuracy": 0.75,
+    "answer_accuracy": 0.667,
+    "grounding_mean": 1.0,
+    "fully_grounded_rate": 1.0,
+    "latency_p50_s": 28.0,
+    "latency_max_s": 40.8,
+    "fell_back_offline": 0
   }
 }
