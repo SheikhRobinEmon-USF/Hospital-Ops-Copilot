@@ -1,0 +1,12 @@
+{
+  "offline": {
+    "cases": 12,
+    "tool_accuracy": 0.917,
+    "answer_accuracy": 0.667,
+    "grounding_mean": 0.992,
+    "fully_grounded_rate": 0.917,
+    "latency_p50_s": 0.0,
+    "latency_max_s": 1.1,
+    "fell_back_offline": 12
+  }
+}
