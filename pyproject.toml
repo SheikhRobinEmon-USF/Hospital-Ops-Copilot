@@ -24,7 +24,7 @@ dependencies = [
 dev = ["pytest>=8", "ruff>=0.5"]
 
 [project.scripts]
-hoc = "hospital_ops_copilot.cli:main"
+hoc = "hospital_ops_copilot.cli:_entry"
 
 [build-system]
 requires = ["hatchling"]

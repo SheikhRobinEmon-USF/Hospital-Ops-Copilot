@@ -81,7 +81,13 @@ def main(argv: list[str] | None = None) -> int:
         uvicorn.run("hospital_ops_copilot.api.main:app", host=args.host, port=args.port)
     elif args.cmd == "ui":
         app = Path(__file__).parent / "ui" / "app.py"
-        return subprocess.call([sys.executable, "-m", "streamlit", "run", str(app)])
+        proc = subprocess.Popen([sys.executable, "-m", "streamlit", "run", str(app)])
+        try:
+            return proc.wait()
+        except KeyboardInterrupt:  # Ctrl+C: let Streamlit shut down, then exit without a traceback
+            proc.wait()
+            print("\nStopped.")
+            return 0
     elif args.cmd == "eval":
         root = Path(__file__).resolve().parents[2]
         sys.path.insert(0, str(root))
@@ -90,5 +96,13 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
+def _entry() -> int:
+    try:
+        return main()
+    except KeyboardInterrupt:
+        print("\nStopped.")
+        return 130
+
+
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(_entry())
