@@ -1,6 +1,7 @@
 # One command: docker compose up
-# UI  -> http://localhost:8501
-# API -> http://localhost:8000/docs
+# Web app   -> http://localhost:3000   (Next.js, primary UI)
+# API       -> http://localhost:8000/docs
+# Streamlit -> http://localhost:8501   (lightweight analyst UI)
 services:
   ollama:
     image: ollama/ollama:latest
@@ -30,6 +31,15 @@ services:
       - OLLAMA_HOST=http://ollama:11434
     entrypoint: ["/bin/sh", "-c", "ollama pull ${HOC_CHAT_MODEL:-qwen3.5:4b} && ollama pull ${HOC_EMBED_MODEL:-embeddinggemma}"]
 
+  web:
+    build:
+      context: ./web
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+    depends_on: [api]
+    ports:
+      - "3000:3000"
+
   ui:
     build: .
     depends_on: [ollama]
@@ -48,6 +58,7 @@ services:
       - HOC_OLLAMA_HOST=http://ollama:11434
       - HOC_CHAT_MODEL=${HOC_CHAT_MODEL:-qwen3.5:4b}
       - HOC_EMBED_MODEL=${HOC_EMBED_MODEL:-embeddinggemma}
+      - HOC_CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
     ports:
       - "8000:8000"
 

@@ -4,7 +4,7 @@ AI-powered hospital financial benchmarking and decision support using public CMS
 analytics, and evidence-grounded insights. Runs entirely on free, local models through
 [Ollama](https://ollama.com): no API keys, and no data leaves your machine.
 
-![Overview](docs/images/overview.png)
+![Hospital Ops Copilot web app](docs/images/web_overview.png)
 
 ## What it does
 
@@ -27,6 +27,15 @@ Pick any of the 6,264 Medicare-certified US hospitals in the CMS Hospital Provid
   - **Sources** taken from the tools that ran: the CMS report ID, fiscal period, and fields.
   - **A grounding check** that traces every number in the answer back to tool output and flags
     any it cannot.
+
+## Interfaces
+
+- **Web app** ([`web/`](web/README.md)): Next.js 16, React 19, TypeScript, Tailwind CSS v4, Radix UI, Motion,
+  TanStack Query, and Storybook. Dark-mode-first dashboard with a docked, streaming AI copilot, a `⌘K` command
+  palette, proactive insights, and voice input.
+- **REST API** (FastAPI): every analytic as an endpoint, plus `/ask/stream` (server-sent events) for the agent.
+- **CLI** (`hoc`): download, build, ask, evaluate.
+- **Streamlit app** (`hoc ui`): a lightweight analyst view that runs without Node.js.
 
 ## Why it is built this way
 
@@ -76,27 +85,37 @@ data at run time, so the suite stays valid when the dataset is refreshed.
 docker compose up
 ```
 
-Open http://localhost:8501 for the app and http://localhost:8000/docs for the API. The first start
-pulls `qwen3.5:4b` and `embeddinggemma` (about 4 GB).
+Open http://localhost:3000 for the web app, http://localhost:8000/docs for the API, and
+http://localhost:8501 for the Streamlit view. The first start pulls `qwen3.5:4b` and `embeddinggemma`
+(about 4 GB). On a Mac, Docker cannot use the GPU, so the copilot is faster with Option B.
 
-### Option B: Local Python
+### Option B: Local (recommended on a Mac: Ollama uses the GPU)
 
-Requires Python 3.11+ and, for the copilot, [Ollama](https://ollama.com/download).
+Requires Python 3.11+, Node.js 20+, and, for the copilot, [Ollama](https://ollama.com/download).
 
 ```bash
-pip install -e ".[dev]"
+python3 -m venv .venv && source .venv/bin/activate && pip install -e ".[dev]"
 ```
 
 ```bash
 ollama pull qwen3.5:4b && ollama pull embeddinggemma
 ```
 
+Start the API (terminal 1):
+
 ```bash
-hoc ui
+hoc api
 ```
 
-The processed dataset ships in `data/processed/`, so the app works right after install. Without
-Ollama, the copilot runs in offline analyst mode.
+Start the web app (terminal 2):
+
+```bash
+cd web && npm install && npm run dev
+```
+
+Open http://localhost:3000. The processed dataset ships in `data/processed/`, so it works right after
+install. Without Ollama, the copilot runs in offline analyst mode. For the Streamlit view instead, run
+`hoc ui`.
 
 To rebuild the data from CMS:
 
@@ -124,17 +143,17 @@ curl "localhost:8000/hospitals/100128/benchmark?year=2023"
 curl -X POST localhost:8000/ask -H "content-type: application/json" -d '{"question": "Where can we save money?", "ccn": "100128"}'
 ```
 
-Endpoints: `/health`, `/kpis`, `/hospitals/search`, `/hospitals/{ccn}`, `/hospitals/{ccn}/benchmark`,
+Endpoints: `/health`, `/models`, `/kpis`, `/hospitals/search`, `/hospitals/{ccn}`, `/hospitals/{ccn}/benchmark`,
 `/hospitals/{ccn}/opportunities`, `/hospitals/{ccn}/trend`, `/hospitals/{ccn}/scenario`,
-`/rankings/{kpi}`, `/ask`.
+`/hospitals/{ccn}/insights`, `/rankings/{kpi}`, `/ask`, and `/ask/stream` (server-sent events).
 
 ## Screens
 
-| Benchmark | Opportunities |
+| Benchmark | Copilot |
 |---|---|
-| ![Benchmark](docs/images/benchmark.png) | ![Opportunities](docs/images/opportunities.png) |
-| **Trends** | **Copilot** |
-| ![Trends](docs/images/trends.png) | ![Copilot](docs/images/copilot.png) |
+| ![Benchmark](docs/images/web_benchmark.png) | ![Copilot](docs/images/web_copilot.png) |
+| **What-if** | **Light mode** |
+| ![What-if](docs/images/web_scenario.png) | ![Light mode](docs/images/web_light.png) |
 
 ## Data
 
@@ -156,6 +175,7 @@ operating margin counts only patient revenue, so read it with the total margin. 
 ## Project structure
 
 ```
+web/           Next.js 16 web app (see web/README.md)
 src/hospital_ops_copilot/
   data/        download from data.cms.gov, clean, derive KPIs
   analytics/   KPI catalogue, data store, benchmarking engine
@@ -178,7 +198,8 @@ make test
 make lint
 ```
 
-CI runs lint, tests, and an offline copilot smoke test on every push.
+CI runs Python lint and tests, an offline copilot smoke test, and the web app's lint, typecheck,
+production build, and Storybook build on every push.
 
 ## Disclaimer
 

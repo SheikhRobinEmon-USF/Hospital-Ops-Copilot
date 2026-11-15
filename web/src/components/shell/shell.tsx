@@ -114,8 +114,8 @@ function PeerPicker() {
       <Popover.Trigger asChild>
         <Button variant="secondary" size="md" aria-label="Peer group">
           <Users />
-          <span className="hidden md:inline">Peers:</span>
-          <span className="hidden max-w-40 truncate text-muted xl:inline">{peerDims.map((d) => PEER_DIM_LABEL[d]).join(" + ")}</span>
+          <span className="hidden 2xl:inline">Peers:</span>
+          <span className="hidden max-w-40 truncate text-muted 2xl:inline">{peerDims.map((d) => PEER_DIM_LABEL[d]).join(" + ")}</span>
           <ChevronDown className="opacity-60" />
         </Button>
       </Popover.Trigger>
@@ -183,7 +183,7 @@ export function Topbar() {
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-[var(--background)]/70 backdrop-blur-xl">
-      <div className="flex h-14 items-center gap-2 px-4 lg:px-6">
+      <div className="flex h-14 min-w-0 items-center gap-2 px-4 lg:px-6">
         <button
           onClick={() => setPaletteOpen(true)}
           className="glass group flex h-9 min-w-[200px] flex-1 items-center gap-2.5 rounded-lg px-3 text-left text-sm transition hover:bg-[var(--surface-strong)] md:max-w-md"
@@ -195,7 +195,7 @@ export function Topbar() {
             <Kbd>⌘K</Kbd>
           </span>
         </button>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-2">
           {years.length > 0 && section !== "trends" && (
             <div className="hidden md:block">
               <Segmented
@@ -211,7 +211,7 @@ export function Topbar() {
           <ThemeToggle />
           <Button variant={copilotOpen ? "secondary" : "primary"} onClick={() => setCopilotOpen(!copilotOpen)} aria-pressed={copilotOpen}>
             {copilotOpen ? <PanelRightOpen /> : <Sparkles />}
-            <span className="sr-only sm:not-sr-only">Copilot</span>
+            <span className={cn("sr-only", copilotOpen ? "2xl:not-sr-only" : "sm:not-sr-only")}>Copilot</span>
             <span className="hidden 2xl:inline"><Kbd>⌘J</Kbd></span>
           </Button>
         </div>

@@ -28,7 +28,7 @@ import { useModels, useProfile } from "@/lib/queries";
 import { cn, TOOL_LABEL, titleCase } from "@/lib/utils";
 import { useWorkspace } from "@/lib/workspace";
 
-interface Step {
+export interface Step {
   name: string;
   args: Record<string, unknown>;
   status: "running" | "done" | "error";
@@ -351,7 +351,7 @@ function TurnView({ turn, isLast, onFollowup }: { turn: Turn; isLast: boolean; o
   );
 }
 
-function AgentTimeline({ steps, done }: { steps: Step[]; done: boolean }) {
+export function AgentTimeline({ steps, done }: { steps: Step[]; done: boolean }) {
   const [open, setOpen] = useState(true);
   return (
     <Collapsible.Root open={open} onOpenChange={setOpen} className="rounded-xl bg-foreground/[0.03] ring-1 ring-inset ring-border">
