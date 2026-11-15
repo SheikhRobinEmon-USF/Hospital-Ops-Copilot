@@ -1,7 +1,7 @@
 "use client";
 
 import { Sparkles } from "lucide-react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { useMemo, useState } from "react";
 
 import { PercentileStrip } from "@/components/charts/percentile-strip";
@@ -76,7 +76,7 @@ export function Benchmark() {
             <div className="border-b border-border px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-muted">{category}</div>
             <ul className="divide-y divide-border">
               {rows.map((r, i) => (
-                <motion.li
+                <m.li
                   key={r.kpi}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -109,7 +109,7 @@ export function Benchmark() {
                       <Sparkles className="text-[var(--accent)]" />
                     </Button>
                   </div>
-                </motion.li>
+                </m.li>
               ))}
             </ul>
           </Card>

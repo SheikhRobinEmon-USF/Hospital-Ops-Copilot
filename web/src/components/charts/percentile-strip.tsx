@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "motion/react";
+import { m } from "motion/react";
 
 import type { KpiRow } from "@/lib/api";
 import { cn, STATUS_STYLE } from "@/lib/utils";
@@ -28,14 +28,14 @@ export function PercentileStrip({ row, compact = false }: { row: KpiRow; compact
         <div className="absolute left-1/2 top-1/2 h-3 w-px -translate-y-1/2 bg-foreground/40" />
       </div>
       {pct !== null && (
-        <motion.div
+        <m.div
           className="absolute top-1/2"
           initial={{ left: "50%", opacity: 0 }}
           animate={{ left: `${pct}%`, opacity: 1 }}
           transition={{ type: "spring", stiffness: 120, damping: 18 }}
         >
           <span className={cn("block -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-[var(--surface-strong)]", s.dot, compact ? "size-2.5" : "size-3.5")} />
-        </motion.div>
+        </m.div>
       )}
     </div>
   );

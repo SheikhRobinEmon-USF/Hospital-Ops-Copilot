@@ -2,6 +2,9 @@ import type { Metadata, Viewport } from "next";
 import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
 
+import { API_URL } from "@/lib/api";
+import { prefetchScript } from "@/lib/prefetch";
+
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -21,6 +24,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" suppressHydrationWarning className={`${GeistSans.variable} ${GeistMono.variable} h-full antialiased`}>
+      <head>
+        <link rel="preconnect" href={API_URL} crossOrigin="anonymous" />
+        <script dangerouslySetInnerHTML={{ __html: prefetchScript() }} />
+      </head>
       <body className="min-h-full">
         <Providers>{children}</Providers>
       </body>

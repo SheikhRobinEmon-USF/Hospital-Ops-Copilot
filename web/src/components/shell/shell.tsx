@@ -18,7 +18,7 @@ import {
   Trophy,
   Users,
 } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { useTheme } from "next-themes";
 import { useEffect, type ReactNode } from "react";
 
@@ -76,7 +76,7 @@ export function Sidebar() {
               )}
             >
               {active && (
-                <motion.span
+                <m.span
                   layoutId="nav-active"
                   className="absolute inset-0 -z-10 rounded-lg bg-foreground/[0.07] ring-1 ring-inset ring-border"
                   transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
@@ -151,9 +151,9 @@ function ThemeToggle() {
     <Tooltip content={dark ? "Light mode" : "Dark mode"}>
       <Button variant="ghost" size="icon" aria-label="Toggle theme" onClick={() => setTheme(dark ? "light" : "dark")}>
         <AnimatePresence mode="wait" initial={false}>
-          <motion.span key={dark ? "moon" : "sun"} initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.18 }}>
+          <m.span key={dark ? "moon" : "sun"} initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.18 }}>
             {dark ? <Moon /> : <Sun />}
-          </motion.span>
+          </m.span>
         </AnimatePresence>
       </Button>
     </Tooltip>
@@ -186,12 +186,11 @@ export function Topbar() {
       <div className="flex h-14 items-center gap-2 px-4 lg:px-6">
         <button
           onClick={() => setPaletteOpen(true)}
-          className="glass group flex h-9 min-w-[180px] flex-1 items-center gap-2.5 rounded-lg px-3 text-left text-sm transition hover:bg-[var(--surface-strong)] md:max-w-md"
+          className="glass group flex h-9 min-w-[200px] flex-1 items-center gap-2.5 rounded-lg px-3 text-left text-sm transition hover:bg-[var(--surface-strong)] md:max-w-md"
         >
           <Building2 className="size-4 shrink-0 text-[var(--accent)]" />
           <span className="min-w-0 truncate font-medium">{profile.data ? titleCase(profile.data.name) : "Loading..."}</span>
-          <span className="hidden truncate text-muted 2xl:inline">{profile.data && `${profile.data.city}, ${profile.data.state}`}</span>
-          <span className="ml-auto hidden shrink-0 items-center gap-1 text-muted sm:flex">
+          <span className="ml-auto hidden shrink-0 items-center gap-1 text-muted 2xl:flex">
             <Search className="size-3.5" />
             <Kbd>⌘K</Kbd>
           </span>
@@ -212,7 +211,7 @@ export function Topbar() {
           <ThemeToggle />
           <Button variant={copilotOpen ? "secondary" : "primary"} onClick={() => setCopilotOpen(!copilotOpen)} aria-pressed={copilotOpen}>
             {copilotOpen ? <PanelRightOpen /> : <Sparkles />}
-            <span className="hidden sm:inline">Copilot</span>
+            <span className="sr-only sm:not-sr-only">Copilot</span>
             <span className="hidden 2xl:inline"><Kbd>⌘J</Kbd></span>
           </Button>
         </div>

@@ -3,7 +3,7 @@
 import * as Slider from "@radix-ui/react-slider";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { RotateCcw } from "lucide-react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { useDeferredValue, useState } from "react";
 
 import { AnimatedNumber, Button, Card, ErrorState, Skeleton } from "@/components/ui/primitives";
@@ -21,22 +21,38 @@ const LEVERS = [
 type Levers = Record<(typeof LEVERS)[number]["key"] | "variable_cost_share", number>;
 const ZERO: Levers = { volume_change_pct: 0, rate_change_pct: 0, opex_change_pct: 0, labor_cost_change_pct: 0, variable_cost_share: 0.35 };
 
-function Lever({ label, value, min, max, step, onChange, format }: { label: string; value: number; min: number; max: number; step: number; onChange: (v: number) => void; format: (v: number) => string }) {
+function Lever({ label, value, min, max, step, onChange, format, signed = true }: { label: string; value: number; min: number; max: number; step: number; onChange: (v: number) => void; format: (v: number) => string; signed?: boolean }) {
+  // Signed levers fill outward from zero, so "no change" reads as an empty track.
+  const pos = (v: number) => ((v - min) / (max - min)) * 100;
+  const zero = pos(0);
+  const at = pos(value);
   return (
     <div>
       <div className="mb-2 flex items-baseline justify-between">
         <label className="text-sm font-medium">{label}</label>
-        <span className={cn("tabular text-sm font-semibold", value > 0 ? "text-emerald-600 dark:text-emerald-400" : value < 0 ? "text-rose-600 dark:text-rose-400" : "text-muted")}>{format(value)}</span>
+        <span className={cn("tabular text-sm font-semibold", !signed ? "text-[var(--accent)]" : value > 0 ? "text-emerald-600 dark:text-emerald-400" : value < 0 ? "text-rose-600 dark:text-rose-400" : "text-muted")}>{format(value)}</span>
       </div>
       <Slider.Root value={[value]} min={min} max={max} step={step} onValueChange={([v]) => onChange(v)} className="relative flex h-5 touch-none select-none items-center" aria-label={label}>
         <Slider.Track className="relative h-1.5 grow rounded-full bg-foreground/10">
-          <Slider.Range className="absolute h-full rounded-full bg-gradient-to-r from-[var(--accent)] to-[var(--accent-2)]" />
+          {signed ? (
+            <>
+              <span className="absolute top-1/2 h-3 w-px -translate-y-1/2 bg-foreground/30" style={{ left: `${zero}%` }} />
+              <span
+                className={cn("absolute h-full rounded-full", value >= 0 ? "bg-emerald-500" : "bg-rose-500")}
+                style={{ left: `${Math.min(zero, at)}%`, width: `${Math.abs(at - zero)}%` }}
+              />
+            </>
+          ) : (
+            <Slider.Range className="absolute h-full rounded-full bg-gradient-to-r from-[var(--accent)] to-[var(--accent-2)]" />
+          )}
         </Slider.Track>
-        <Slider.Thumb className="block size-4 rounded-full bg-white shadow-md ring-2 ring-[var(--accent)] transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--accent)]/40" />
+        <Slider.Thumb aria-label={label} className="block size-4 rounded-full bg-white shadow-md ring-2 ring-[var(--accent)] transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--accent)]/40" />
       </Slider.Root>
     </div>
   );
 }
+
+const tone = (v: number) => (Math.abs(v) < 1e-6 ? "text-muted" : v > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400");
 
 export function Scenario() {
   const { ccn, year, askCopilot } = useWorkspace();
@@ -86,7 +102,7 @@ export function Scenario() {
             <Lever key={l.key} label={l.label} value={levers[l.key]} min={l.min} max={l.max} step={l.step} format={pct} onChange={(v) => setLevers((x) => ({ ...x, [l.key]: v }))} />
           ))}
           <div className="border-t border-border pt-5">
-            <Lever label="Variable cost share" value={levers.variable_cost_share} min={0} max={1} step={0.05} format={(v) => `${Math.round(v * 100)}%`} onChange={(v) => setLevers((x) => ({ ...x, variable_cost_share: v }))} />
+            <Lever signed={false} label="Variable cost share" value={levers.variable_cost_share} min={0} max={1} step={0.05} format={(v) => `${Math.round(v * 100)}%`} onChange={(v) => setLevers((x) => ({ ...x, variable_cost_share: v }))} />
             <p className="mt-2 text-xs text-muted">Share of operating expense that moves with volume. 35% is a planning default.</p>
           </div>
         </Card>
@@ -101,15 +117,15 @@ export function Scenario() {
                   <p className="text-xs text-muted">Operating margin</p>
                   <div className="mt-1 flex items-baseline gap-2">
                     <AnimatedNumber value={s.scenario.operating_margin} format={(v) => `${(v * 100).toFixed(1)}%`} className="text-4xl font-semibold tracking-tight" />
-                    <span className={cn("tabular text-sm font-medium", s.delta.operating_margin_pp >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>
-                      {s.delta.operating_margin_pp >= 0 ? "+" : ""}{s.delta.operating_margin_pp.toFixed(1)} pts
+                    <span className={cn("tabular text-sm font-medium", tone(s.delta.operating_margin_pp))}>
+                      {s.delta.operating_margin_pp > 0 ? "+" : ""}{s.delta.operating_margin_pp.toFixed(1)} pts
                     </span>
                   </div>
                   <p className="tabular text-xs text-muted">Baseline {s.baseline.operating_margin_fmt}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted">Operating income change</p>
-                  <AnimatedNumber value={s.delta.operating_income} format={(v) => `${v >= 0 ? "+" : ""}${usd(v)}`} className={cn("mt-1 block text-4xl font-semibold tracking-tight", s.delta.operating_income >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")} />
+                  <AnimatedNumber value={s.delta.operating_income} format={(v) => (Math.abs(v) < 0.5 ? "$0" : `${v > 0 ? "+" : ""}${usd(v)}`)} className={cn("mt-1 block text-4xl font-semibold tracking-tight", tone(s.delta.operating_income))} />
                   <p className="tabular text-xs text-muted">Scenario income {usd(s.scenario.operating_income)}</p>
                 </div>
               </div>
@@ -119,7 +135,7 @@ export function Scenario() {
                     <div className="mb-1 flex justify-between text-xs"><span className="font-medium">{b.label}</span><span className="tabular text-muted">{usd(b.base)} → <span className="text-foreground">{usd(b.next)}</span></span></div>
                     <div className="relative h-3 rounded-full bg-foreground/[0.06]">
                       <div className="absolute inset-y-0 left-0 rounded-full bg-foreground/15" style={{ width: `${(b.base / maxBar) * 100}%` }} />
-                      <motion.div className={cn("absolute inset-y-0 left-0 rounded-full", b.label === "Revenue" ? "bg-[var(--accent)]" : "bg-rose-500/80")} animate={{ width: `${(b.next / maxBar) * 100}%` }} transition={{ type: "spring", stiffness: 120, damping: 20 }} style={{ mixBlendMode: "normal", opacity: 0.85 }} />
+                      <m.div className={cn("absolute inset-y-0 left-0 rounded-full", b.label === "Revenue" ? "bg-[var(--accent)]" : "bg-rose-500/80")} animate={{ width: `${(b.next / maxBar) * 100}%` }} transition={{ type: "spring", stiffness: 120, damping: 20 }} style={{ mixBlendMode: "normal", opacity: 0.85 }} />
                     </div>
                   </div>
                 ))}

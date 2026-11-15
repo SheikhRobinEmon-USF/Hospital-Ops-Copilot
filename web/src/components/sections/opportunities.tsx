@@ -2,7 +2,7 @@
 
 import * as Collapsible from "@radix-ui/react-collapsible";
 import { ChevronDown, Sparkles } from "lucide-react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { useState } from "react";
 
 import { AnimatedNumber, Button, Card, ErrorState, Segmented, Skeleton } from "@/components/ui/primitives";
@@ -89,7 +89,7 @@ function OpportunityRow({ o, max, index, onAsk }: { o: Opportunity; max: number;
           </div>
           <div className="order-3 col-span-2 h-2.5 overflow-hidden rounded-full bg-foreground/[0.06] md:order-none md:col-span-1">
             {o.annual_impact_usd ? (
-              <motion.div className={cn("h-full rounded-full bg-gradient-to-r", style.bar)} initial={{ width: 0 }} animate={{ width: `${width}%` }} transition={{ delay: 0.05 * index, duration: 0.6, ease: "easeOut" }} />
+              <m.div className={cn("h-full rounded-full bg-gradient-to-r", style.bar)} initial={{ width: 0 }} animate={{ width: `${width}%` }} transition={{ delay: 0.05 * index, duration: 0.6, ease: "easeOut" }} />
             ) : (
               <div className="h-full w-full bg-[repeating-linear-gradient(45deg,transparent,transparent_4px,var(--border)_4px,var(--border)_8px)]" />
             )}

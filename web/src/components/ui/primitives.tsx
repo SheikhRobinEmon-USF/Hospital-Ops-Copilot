@@ -1,7 +1,7 @@
 "use client";
 
 import { cva, type VariantProps } from "class-variance-authority";
-import { motion, useMotionValue, useReducedMotion, useSpring, useTransform } from "motion/react";
+import { m, useMotionValue, useReducedMotion, useSpring, useTransform } from "motion/react";
 import { forwardRef, useEffect, type ButtonHTMLAttributes, type HTMLAttributes, type ReactNode } from "react";
 
 import type { Status } from "@/lib/api";
@@ -114,7 +114,7 @@ export function Segmented<T extends string | number>({
             )}
           >
             {active && (
-              <motion.span
+              <m.span
                 layoutId={layoutId}
                 className="absolute inset-0 -z-10 rounded-md bg-[var(--surface-strong)] shadow-sm ring-1 ring-border"
                 transition={{ type: "spring", bounce: 0.18, duration: 0.45 }}
@@ -141,7 +141,7 @@ export function AnimatedNumber({ value, format, className }: { value: number | n
   }, [mv, value]);
   if (value === null) return <span className={className}>n/a</span>;
   if (reduce) return <span className={cn("tabular", className)}>{format(value)}</span>;
-  return <motion.span className={cn("tabular", className)}>{text}</motion.span>;
+  return <m.span className={cn("tabular", className)}>{text}</m.span>;
 }
 
 /* ---------------------------------------------------------------- Empty / error */

@@ -16,7 +16,7 @@ import {
   Square,
   X,
 } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -190,7 +190,7 @@ export function CopilotPanel() {
   return (
     <AnimatePresence initial={false}>
       {copilotOpen && (
-        <motion.aside
+        <m.aside
           key="copilot"
           initial={{ x: 40, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
@@ -236,7 +236,7 @@ export function CopilotPanel() {
                 </div>
                 <div className="flex flex-col gap-1.5">
                   {STARTERS.map((s, i) => (
-                    <motion.button
+                    <m.button
                       key={s}
                       initial={{ opacity: 0, y: 6 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -245,7 +245,7 @@ export function CopilotPanel() {
                       className="rounded-xl px-3 py-2 text-left text-sm ring-1 ring-inset ring-border transition hover:bg-foreground/5 hover:ring-[var(--accent)]/40"
                     >
                       {s}
-                    </motion.button>
+                    </m.button>
                   ))}
                 </div>
               </div>
@@ -292,7 +292,7 @@ export function CopilotPanel() {
             </div>
             <p className="mt-1.5 px-1 text-[10px] text-muted">Enter to send · Shift+Enter for a new line · AI can misread data; verified figures are marked.</p>
           </form>
-        </motion.aside>
+        </m.aside>
       )}
     </AnimatePresence>
   );
@@ -364,7 +364,7 @@ function AgentTimeline({ steps, done }: { steps: Step[]; done: boolean }) {
         <ol className="space-y-1.5 px-3 pb-2.5">
           <AnimatePresence initial={false}>
             {steps.map((s, i) => (
-              <motion.li key={i} initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} className="flex items-start gap-2 text-xs">
+              <m.li key={i} initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} className="flex items-start gap-2 text-xs">
                 <span className="mt-0.5">
                   {s.status === "running" ? <Loader2 className="size-3 animate-spin text-[var(--accent)]" /> : s.status === "done" ? <Check className="size-3 text-emerald-500" /> : <X className="size-3 text-rose-500" />}
                 </span>
@@ -373,7 +373,7 @@ function AgentTimeline({ steps, done }: { steps: Step[]; done: boolean }) {
                   {s.summary && <span className="text-muted"> · {s.summary}</span>}
                   <span className="block truncate font-mono text-[10px] text-muted/80">{s.name}({Object.entries(s.args).map(([k, v]) => `${k}=${JSON.stringify(v)}`).join(", ")})</span>
                 </span>
-              </motion.li>
+              </m.li>
             ))}
           </AnimatePresence>
         </ol>

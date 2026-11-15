@@ -3,6 +3,8 @@
  * Every number shown in the UI comes from these endpoints; the browser never computes KPIs.
  */
 
+import { takePrefetched } from "./prefetch";
+
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
 
 export type Direction = "higher" | "lower" | null;
@@ -230,7 +232,16 @@ function qs(params: Record<string, string | number | boolean | string[] | undefi
 }
 
 async function get<T>(path: string, params: Parameters<typeof qs>[0] = {}, signal?: AbortSignal): Promise<T> {
-  const res = await fetch(`${API_URL}${path}${qs(params)}`, { signal });
+  const url = `${API_URL}${path}${qs(params)}`;
+  const early = takePrefetched<T>(url);
+  if (early) {
+    try {
+      return await early;
+    } catch {
+      // fall through to a normal request
+    }
+  }
+  const res = await fetch(url, { signal });
   if (!res.ok) {
     let detail = res.statusText;
     try {

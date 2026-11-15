@@ -2,7 +2,7 @@
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ArrowUpRight } from "lucide-react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { useState } from "react";
 
 import { Card, ErrorState, Segmented, Skeleton } from "@/components/ui/primitives";
@@ -60,7 +60,7 @@ export function Market() {
         ) : (
           <ul className={cn("divide-y divide-border transition-opacity", q.isFetching && "opacity-70")}>
             {q.data?.results.map((r, i) => (
-              <motion.li key={r.ccn} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.015 }}>
+              <m.li key={r.ccn} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.015 }}>
                 <button
                   onClick={() => set({ ccn: r.ccn, section: "overview" })}
                   className={cn("group grid w-full grid-cols-[2rem_1fr_auto] items-center gap-3 px-5 py-2.5 text-left text-sm transition hover:bg-foreground/[0.04] md:grid-cols-[2rem_minmax(200px,1fr)_minmax(120px,1fr)_6rem]", r.ccn === ccn && "bg-[var(--accent)]/[0.07]")}
@@ -78,7 +78,7 @@ export function Market() {
                     <ArrowUpRight className="size-3.5 text-muted opacity-0 transition group-hover:opacity-100" />
                   </span>
                 </button>
-              </motion.li>
+              </m.li>
             ))}
           </ul>
         )}

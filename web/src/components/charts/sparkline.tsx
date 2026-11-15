@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { useId } from "react";
 
 /** Dependency-free SVG sparkline: hospital line plus dashed peer-median line. */
@@ -45,7 +45,7 @@ export function Sparkline({
       </defs>
       {peer && <path d={path(peer)} fill="none" stroke="var(--chart-2)" strokeWidth="1.25" strokeDasharray="3 3" opacity="0.7" />}
       <path d={`${main} L${x(lastIdx)},${height} L${x(0)},${height} Z`} fill={`url(#${id})`} />
-      <motion.path d={main} fill="none" stroke="var(--accent)" strokeWidth="1.75" strokeLinecap="round" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.8, ease: "easeOut" }} />
+      <m.path d={main} fill="none" stroke="var(--accent)" strokeWidth="1.75" strokeLinecap="round" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.8, ease: "easeOut" }} />
       <circle cx={x(lastIdx)} cy={y(last)} r="2.5" fill="var(--accent)" />
     </svg>
   );

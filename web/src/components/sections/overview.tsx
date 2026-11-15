@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertTriangle, ArrowRight, BadgeDollarSign, Info, Sparkles, TrendingUp } from "lucide-react";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 
 import { Sparkline } from "@/components/charts/sparkline";
 import { AnimatedNumber, Card, CardHeader, ErrorState, Pill, Skeleton, StatusBadge } from "@/components/ui/primitives";
@@ -9,18 +9,10 @@ import { Tooltip } from "@/components/ui/tooltip";
 import type { Insight, KpiDef, KpiRow } from "@/lib/api";
 import { useBenchmark, useInsights, useKpiDefs, useProfile, useTrend } from "@/lib/queries";
 import { cn, formatKpi, titleCase, usd } from "@/lib/utils";
+import { HEADLINE_KPIS } from "@/lib/prefetch";
 import { useWorkspace } from "@/lib/workspace";
 
-export const HEADLINE = [
-  "operating_margin",
-  "total_margin",
-  "opex_per_adj_discharge",
-  "npr_per_adj_discharge",
-  "fte_per_adj_occupied_bed",
-  "occupancy_rate",
-  "alos",
-  "days_in_ar",
-];
+export const HEADLINE = HEADLINE_KPIS;
 
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.04 } } };
 const rise = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.2, 0.7, 0.2, 1] as const } } };
@@ -30,9 +22,10 @@ export function HospitalHeader() {
   const bm = useBenchmark();
   if (isPending || !p) {
     return (
-      <div className="space-y-3">
-        <Skeleton className="h-9 w-80" />
-        <Skeleton className="h-5 w-[32rem] max-w-full" />
+      <div className="flex flex-col gap-3" aria-busy="true">
+        <Skeleton className="h-4 w-72" />
+        <Skeleton className="h-9 w-96 max-w-full md:h-10" />
+        <Skeleton className="h-6 w-[36rem] max-w-full" />
       </div>
     );
   }
@@ -73,7 +66,7 @@ export function KpiCard({ row, def, spark, peerSpark }: { row: KpiRow; def?: Kpi
   const diffText =
     diff === null ? "" : unit === "pct" ? `${diff >= 0 ? "+" : ""}${(diff * 100).toFixed(1)} pts` : `${diff >= 0 ? "+" : "-"}${formatKpi(unit, Math.abs(diff))}`;
   return (
-    <motion.div variants={rise}>
+    <m.div variants={rise}>
       <Card className="group h-full p-4 transition hover:shadow-lg hover:shadow-[var(--accent)]/5">
         <div className="flex items-start justify-between gap-2">
           <Tooltip content={<><p className="font-medium">{row.label}</p><p className="mt-1 text-muted">{def?.description}</p><p className="mt-1.5 font-mono text-[10px] text-muted">{def?.formula}</p></>}>
@@ -95,7 +88,7 @@ export function KpiCard({ row, def, spark, peerSpark }: { row: KpiRow; def?: Kpi
           {spark && <Sparkline values={spark} peer={peerSpark} width={96} height={34} />}
         </div>
       </Card>
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -107,7 +100,7 @@ function InsightCard({ insight }: { insight: Insight }) {
     strength: { icon: <TrendingUp />, ring: "from-emerald-500/25", color: "text-emerald-500" },
   }[insight.kind];
   return (
-    <motion.button
+    <m.button
       variants={rise}
       whileHover={{ y: -2 }}
       onClick={() => askCopilot(insight.ask)}
@@ -126,7 +119,7 @@ function InsightCard({ insight }: { insight: Insight }) {
           <ArrowRight className="size-3.5 transition group-hover:translate-x-0.5" />
         </span>
       </span>
-    </motion.button>
+    </m.button>
   );
 }
 
@@ -170,15 +163,15 @@ export function Overview() {
         <div className="mb-3 flex items-center gap-2">
           <Sparkles className="size-4 text-[var(--accent)]" />
           <h2 id="insights-h" className="text-sm font-semibold">What stands out</h2>
-          <span className="text-xs text-muted">Computed from the benchmark. Click any card to ask the copilot why.</span>
+          <span className="hidden text-xs text-muted sm:inline">Computed from the benchmark. Click any card to ask the copilot why.</span>
         </div>
         {insights.isPending ? (
           <div className="grid gap-3 md:grid-cols-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-36" />)}</div>
         ) : (
-          <motion.div variants={stagger} initial="hidden" animate="show" className="grid gap-3 md:grid-cols-2 xl:grid-cols-3" key={insights.data?.insights.map((i) => i.title).join()}>
+          <m.div variants={stagger} initial="hidden" animate="show" className="grid gap-3 md:grid-cols-2 xl:grid-cols-3" key={insights.data?.insights.map((i) => i.title).join()}>
             {insights.data?.insights.slice(0, 6).map((i) => <InsightCard key={i.title} insight={i} />)}
             {insights.data?.insights.length === 0 && <p className="text-sm text-muted">Every directional KPI is within the peer interquartile range.</p>}
-          </motion.div>
+          </m.div>
         )}
       </section>
 
@@ -191,7 +184,7 @@ export function Overview() {
           {bm.isPending ? (
             <div className="grid gap-3 px-5 pt-4 [grid-template-columns:repeat(auto-fill,minmax(230px,1fr))]">{HEADLINE.map((k) => <Skeleton key={k} className="h-32" />)}</div>
           ) : (
-            <motion.div variants={stagger} initial="hidden" animate="show" className="grid gap-3 px-5 pt-4 [grid-template-columns:repeat(auto-fill,minmax(230px,1fr))]">
+            <m.div variants={stagger} initial="hidden" animate="show" className="grid gap-3 px-5 pt-4 [grid-template-columns:repeat(auto-fill,minmax(230px,1fr))]">
               {rows.map((r) => (
                 <KpiCard
                   key={r.kpi}
@@ -201,7 +194,7 @@ export function Overview() {
                   peerSpark={trend.data?.series.map((p) => p[`${r.kpi}_peer_median`] as number | null)}
                 />
               ))}
-            </motion.div>
+            </m.div>
           )}
         </Card>
       </section>
