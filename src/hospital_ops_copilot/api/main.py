@@ -4,9 +4,13 @@ from __future__ import annotations
 
 import json
 import os
+from collections import OrderedDict
+from collections.abc import Callable
+from typing import Any
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -29,7 +33,27 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 _copilot: Copilot | None = None
+
+# Results are pure functions of (data, arguments), so they are cached in memory. A benchmark is
+# ~20 ms of pandas work; a cache hit is microseconds. Keyed by the store's identity so a data reload
+# (or a test fixture) never serves stale results.
+_CACHE: OrderedDict[tuple, Any] = OrderedDict()
+_CACHE_MAX = 4096
+
+
+def _cached(fn: Callable, *args: Any, **kwargs: Any) -> Any:
+    norm = tuple(tuple(a) if isinstance(a, list) else a for a in args[1:])
+    key = (fn.__name__, id(args[0]), norm, tuple(sorted(kwargs.items())))
+    if key in _CACHE:
+        _CACHE.move_to_end(key)
+        return _CACHE[key]
+    value = _wrap(fn, *args, **kwargs)
+    _CACHE[key] = value
+    if len(_CACHE) > _CACHE_MAX:
+        _CACHE.popitem(last=False)
+    return value
 
 
 def copilot() -> Copilot:
@@ -82,7 +106,7 @@ def models() -> dict:
 
 @app.get("/hospitals/{ccn}")
 def profile(ccn: str, year: int | None = None) -> dict:
-    d = _wrap(bm.profile, get_store(), ccn, year)
+    d = dict(_cached(bm.profile, get_store(), ccn, year))
     d["available_years"] = [int(y) for y in get_store().history(d["ccn"])["year"]]
     return d
 
@@ -90,8 +114,8 @@ def profile(ccn: str, year: int | None = None) -> dict:
 @app.get("/hospitals/{ccn}/insights")
 def insights(ccn: str, year: int | None = None, peer_dims: list[str] | None = Query(None)) -> dict:
     """Proactive, deterministic highlights: biggest strengths, risks, and the top sized opportunity."""
-    b = _wrap(bm.benchmark, get_store(), ccn, year, peer_dims)
-    o = _wrap(bm.opportunities, get_store(), ccn, year, peer_dims)
+    b = _cached(bm.benchmark, get_store(), ccn, year, peer_dims)
+    o = _cached(bm.opportunities, get_store(), ccn, year, peer_dims)
     directional = [r for r in b["kpis"] if r["percentile"] is not None and r["direction"]]
 
     def goodness(r: dict) -> float:
@@ -117,18 +141,18 @@ def insights(ccn: str, year: int | None = None, peer_dims: list[str] | None = Qu
 
 @app.get("/hospitals/{ccn}/benchmark")
 def benchmark(ccn: str, year: int | None = None, peer_dims: list[str] | None = Query(None)) -> dict:
-    return _wrap(bm.benchmark, get_store(), ccn, year, peer_dims)
+    return _cached(bm.benchmark, get_store(), ccn, year, peer_dims)
 
 
 @app.get("/hospitals/{ccn}/opportunities")
 def opportunities(ccn: str, year: int | None = None, target: str = "median",
                   peer_dims: list[str] | None = Query(None)) -> dict:
-    return _wrap(bm.opportunities, get_store(), ccn, year, peer_dims, target=target)
+    return _cached(bm.opportunities, get_store(), ccn, year, peer_dims, target=target)
 
 
 @app.get("/hospitals/{ccn}/trend")
 def trend(ccn: str, kpis: list[str] | None = Query(None), peer_dims: list[str] | None = Query(None)) -> dict:
-    return _wrap(bm.trend, get_store(), ccn, kpis, peer_dims)
+    return _cached(bm.trend, get_store(), ccn, kpis, peer_dims)
 
 
 class ScenarioIn(BaseModel):
@@ -149,7 +173,7 @@ def scenario(ccn: str, body: ScenarioIn) -> dict:
 @app.get("/rankings/{kpi}")
 def rankings(kpi: str, year: int | None = None, state: str | None = None, facility_type: str | None = None,
              min_beds: int = 0, top_n: int = 10, best_first: bool = True) -> dict:
-    return _wrap(bm.rank, get_store(), kpi, year, state, facility_type, min_beds, min(top_n, 100), best_first)
+    return _cached(bm.rank, get_store(), kpi, year, state, facility_type, min_beds, min(top_n, 100), best_first)
 
 
 class AskIn(BaseModel):

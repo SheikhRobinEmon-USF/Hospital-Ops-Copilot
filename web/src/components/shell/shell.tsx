@@ -115,7 +115,7 @@ function PeerPicker() {
         <Button variant="secondary" size="md" aria-label="Peer group">
           <Users />
           <span className="hidden md:inline">Peers:</span>
-          <span className="max-w-40 truncate text-muted">{peerDims.map((d) => PEER_DIM_LABEL[d]).join(" + ")}</span>
+          <span className="hidden max-w-40 truncate text-muted xl:inline">{peerDims.map((d) => PEER_DIM_LABEL[d]).join(" + ")}</span>
           <ChevronDown className="opacity-60" />
         </Button>
       </Popover.Trigger>
@@ -186,12 +186,12 @@ export function Topbar() {
       <div className="flex h-14 items-center gap-2 px-4 lg:px-6">
         <button
           onClick={() => setPaletteOpen(true)}
-          className="glass group flex h-9 min-w-0 flex-1 items-center gap-2.5 rounded-lg px-3 text-left text-sm transition hover:bg-[var(--surface-strong)] md:max-w-md"
+          className="glass group flex h-9 min-w-[180px] flex-1 items-center gap-2.5 rounded-lg px-3 text-left text-sm transition hover:bg-[var(--surface-strong)] md:max-w-md"
         >
           <Building2 className="size-4 shrink-0 text-[var(--accent)]" />
-          <span className="truncate font-medium">{profile.data ? titleCase(profile.data.name) : "Loading..."}</span>
-          <span className="hidden truncate text-muted sm:inline">{profile.data && `${profile.data.city}, ${profile.data.state}`}</span>
-          <span className="ml-auto hidden items-center gap-1 text-muted sm:flex">
+          <span className="min-w-0 truncate font-medium">{profile.data ? titleCase(profile.data.name) : "Loading..."}</span>
+          <span className="hidden truncate text-muted 2xl:inline">{profile.data && `${profile.data.city}, ${profile.data.state}`}</span>
+          <span className="ml-auto hidden shrink-0 items-center gap-1 text-muted sm:flex">
             <Search className="size-3.5" />
             <Kbd>⌘K</Kbd>
           </span>
@@ -213,7 +213,7 @@ export function Topbar() {
           <Button variant={copilotOpen ? "secondary" : "primary"} onClick={() => setCopilotOpen(!copilotOpen)} aria-pressed={copilotOpen}>
             {copilotOpen ? <PanelRightOpen /> : <Sparkles />}
             <span className="hidden sm:inline">Copilot</span>
-            <Kbd>⌘J</Kbd>
+            <span className="hidden 2xl:inline"><Kbd>⌘J</Kbd></span>
           </Button>
         </div>
       </div>

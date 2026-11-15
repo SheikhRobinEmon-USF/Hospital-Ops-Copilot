@@ -2,7 +2,7 @@
   "offline": {
     "cases": 12,
     "tool_accuracy": 0.917,
-    "answer_accuracy": 0.75,
+    "answer_accuracy": 0.667,
     "grounding_mean": 0.992,
     "fully_grounded_rate": 0.917,
     "latency_p50_s": 0.0,
@@ -12,9 +12,9 @@
   "qwen3.5:4b": {
     "cases": 12,
     "tool_accuracy": 1.0,
-    "answer_accuracy": 1.0,
-    "grounding_mean": 1.0,
-    "fully_grounded_rate": 1.0,
+    "answer_accuracy": 0.917,
+    "grounding_mean": 0.867,
+    "fully_grounded_rate": 0.75,
     "latency_p50_s": 59.2,
     "latency_max_s": 113.3,
     "fell_back_offline": 0
@@ -38,5 +38,15 @@
     "latency_p50_s": 48.8,
     "latency_max_s": 98.3,
     "fell_back_offline": 1
+  },
+  "qwen3.5:2b": {
+    "cases": 12,
+    "tool_accuracy": 0.917,
+    "answer_accuracy": 0.833,
+    "grounding_mean": 0.927,
+    "fully_grounded_rate": 0.75,
+    "latency_p50_s": 22.4,
+    "latency_max_s": 41.6,
+    "fell_back_offline": 0
   }
 }

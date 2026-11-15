@@ -61,7 +61,7 @@ export function CardHeader({ title, description, action, icon }: { title: ReactN
 export function StatusBadge({ status, className }: { status: Status; className?: string }) {
   const s = STATUS_STYLE[status];
   return (
-    <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset", s.chip, className)}>
+    <span className={cn("inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset", s.chip, className)}>
       <span className={cn("size-1.5 rounded-full", s.dot)} />
       {s.label}
     </span>
