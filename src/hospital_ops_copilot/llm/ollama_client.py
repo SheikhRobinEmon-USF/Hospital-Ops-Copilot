@@ -46,13 +46,14 @@ class OllamaClient:
         return [m["name"] for m in r.json().get("models", [])]
 
     def chat(self, messages: list[dict], model: str | None = None, tools: list[dict] | None = None,
-             temperature: float = 0.0, num_ctx: int = 8192, think: bool | None = None) -> ChatResult:
+             temperature: float = 0.0, num_ctx: int = 8192, think: bool | None = None,
+             num_predict: int = 700) -> ChatResult:
         model = model or self.settings.chat_model
         payload: dict = {
             "model": model,
             "messages": messages,
             "stream": False,
-            "options": {"temperature": temperature, "num_ctx": num_ctx},
+            "options": {"temperature": temperature, "num_ctx": num_ctx, "num_predict": num_predict},
             "keep_alive": "15m",
         }
         if tools:
@@ -80,13 +81,14 @@ class OllamaClient:
         )
 
     def chat_stream(self, messages: list[dict], model: str | None = None, tools: list[dict] | None = None,
-                    temperature: float = 0.0, num_ctx: int = 8192, think: bool | None = None):
+                    temperature: float = 0.0, num_ctx: int = 8192, think: bool | None = None,
+             num_predict: int = 700):
         """Yield Ollama's NDJSON chunks: message deltas, tool calls, and a final chunk with token counts."""
         import json
 
         model = model or self.settings.chat_model
         payload: dict = {"model": model, "messages": messages, "stream": True,
-                         "options": {"temperature": temperature, "num_ctx": num_ctx}, "keep_alive": "15m"}
+                         "options": {"temperature": temperature, "num_ctx": num_ctx, "num_predict": num_predict}, "keep_alive": "15m"}
         if tools:
             payload["tools"] = tools
         if think is None and model.split(":")[0] in THINKING_FAMILIES:
