@@ -12,6 +12,6 @@ COPY data/processed ./data/processed
 COPY .streamlit ./.streamlit
 COPY evals ./evals
 
-ENV HOC_DATA_DIR=/app/data HOC_DOCS_DIR=/app/docs
+ENV HOC_DATA_DIR=/app/data HOC_DOCS_DIR=/app/docs STREAMLIT_SERVER_HEADLESS=true
 EXPOSE 8501 8000
 CMD ["streamlit", "run", "src/hospital_ops_copilot/ui/app.py", "--server.port=8501", "--server.address=0.0.0.0"]
