@@ -50,14 +50,55 @@ Hardware: 4 vCPU, 16 GB RAM, no GPU. Latencies are CPU-only and much lower on an
 Silicon; use them to compare models, not as absolute numbers.
 
 <!-- MODEL_RESULTS_START -->
-Pending.
+| Model | Tool selection | Answer accuracy | Grounded answers | Mean grounding | p50 latency (CPU) |
+|---|---|---|---|---|---|
+| offline analyst (no LLM)* | 100% | 100% | 100% | 100% | 0 s |
+| `qwen3.5:4b` | 100% | 100% | 100% | 100% | 59 s |
+| `qwen3.5:2b` | 92% | 75% | 92% | 99% | 22 s |
+| `granite4:3b` | 92% | 75% | 58% | 74% | 49 s |
+| `llama3.2:3b` | 75% | 67% | 100% | 100% | 28 s |
+
+Agent suite: 12 questions covering lookups, peer comparison, opportunities, trends, what-if scenarios, rankings, and definitions. *Tool selection*: the expected tool was called. *Answer accuracy*: every expected figure (computed from the data) and keyword appears in the answer. *Grounded answers*: every number in the answer traces to tool output.
+
+\* The offline analyst is a keyword router that was debugged on these questions, so its score is an upper bound, not a held-out result. The LLM prompts were not tuned on this set.
+
+Retrieval suite: 25 questions over the KPI glossary, methodology, and CMS data dictionary.
+
+| Retriever | hit@1 | hit@3 | MRR | Query latency |
+|---|---|---|---|---|
+| bm25 | 0.84 | 0.96 | 0.893 | 0 ms |
+| dense:nomic-embed-text | 0.88 | 0.96 | 0.913 | 56 ms |
+| hybrid:nomic-embed-text | 0.88 | 0.96 | 0.921 | 53 ms |
+| dense:embeddinggemma | 0.88 | 0.96 | 0.930 | 51 ms |
+| hybrid:embeddinggemma | 0.92 | 0.96 | 0.948 | 53 ms |
+| dense:qwen3-embedding:0.6b | 0.92 | 0.96 | 0.950 | 99 ms |
+| hybrid:qwen3-embedding:0.6b | 0.92 | 0.96 | 0.941 | 100 ms |
 <!-- MODEL_RESULTS_END -->
+
+## Findings
+
+- **`qwen3.5:4b` is the default.** It was the only model to call the right tool, state every expected figure, and
+  keep every number traceable to tool output on all 12 questions. It is also the slowest of the small models on a
+  CPU, which matters little on a laptop GPU or Apple Silicon.
+- **Smaller models fail in the arithmetic, not the routing.** `qwen3.5:2b` and `granite4:3b` usually picked the
+  right tool but then restated or recomputed figures. `granite4:3b` invented a "$23,500" peer median that
+  appeared nowhere in the data; the grounding check flagged it. This is the failure mode the verifier exists for.
+- **`llama3.2:3b` is fast but skips tools.** It answered two scenario questions without calling the scenario
+  tool, so it had no figures to quote. Its answers that did use tools were fully grounded.
+- **`ministral-3:3b` declined to use tools** in a smoke test ("I don't have access to the tools needed"), so it
+  is not recommended for this agent.
+- **`qwen3:4b` is superseded by `qwen3.5:4b`.** In the smoke test it wrote its reasoning into the answer text
+  even with thinking disabled, and took about 3x longer than `qwen3.5:4b` for the same tool call.
+- **The offline analyst is a strong floor.** Because every figure comes from deterministic tools, even the
+  keyword router answers these questions correctly. What the LLM adds is open-ended phrasing, follow-up
+  context, and explanation, not the numbers.
+
+Models that did not finish within the CPU time budget of the evaluation run are omitted from the table.
 
 ## Settings that matter
 
-- **Thinking off.** Qwen3 and Qwen3.5 support a reasoning mode. For short tool-routing tasks it
-  multiplied latency without changing tool choice, so the client sends `think: false` for these
-  families. With thinking on, Qwen3 4B also leaked reasoning text into the answer.
+- **Thinking off.** Qwen3 and Qwen3.5 support a reasoning mode. It adds generated tokens, and so
+  latency, to short tool-routing calls, so the client sends `think: false` for these families.
 - **Temperature 0** for repeatable tool choice.
 - **`num_ctx` 8192.** Tool outputs are kept compact (see `llm/tools.py`) so prompts stay near 3,000
   tokens.
