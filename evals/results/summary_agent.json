@@ -1,0 +1,52 @@
+{
+  "offline": {
+    "cases": 12,
+    "tool_accuracy": 1.0,
+    "answer_accuracy": 1.0,
+    "grounding_mean": 1.0,
+    "fully_grounded_rate": 1.0,
+    "latency_p50_s": 0.0,
+    "latency_max_s": 89.0,
+    "fell_back_offline": 12
+  },
+  "qwen3.5:4b": {
+    "cases": 12,
+    "tool_accuracy": 1.0,
+    "answer_accuracy": 1.0,
+    "grounding_mean": 1.0,
+    "fully_grounded_rate": 1.0,
+    "latency_p50_s": 59.2,
+    "latency_max_s": 113.3,
+    "fell_back_offline": 0
+  },
+  "llama3.2:3b": {
+    "cases": 12,
+    "tool_accuracy": 0.75,
+    "answer_accuracy": 0.667,
+    "grounding_mean": 1.0,
+    "fully_grounded_rate": 1.0,
+    "latency_p50_s": 28.0,
+    "latency_max_s": 40.8,
+    "fell_back_offline": 0
+  },
+  "granite4:3b": {
+    "cases": 12,
+    "tool_accuracy": 0.917,
+    "answer_accuracy": 0.75,
+    "grounding_mean": 0.739,
+    "fully_grounded_rate": 0.583,
+    "latency_p50_s": 48.8,
+    "latency_max_s": 98.3,
+    "fell_back_offline": 1
+  },
+  "qwen3.5:2b": {
+    "cases": 12,
+    "tool_accuracy": 0.917,
+    "answer_accuracy": 0.75,
+    "grounding_mean": 0.986,
+    "fully_grounded_rate": 0.917,
+    "latency_p50_s": 22.4,
+    "latency_max_s": 41.6,
+    "fell_back_offline": 0
+  }
+}

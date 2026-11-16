@@ -1,0 +1,71 @@
+{
+  "bm25": {
+    "hit@1": 0.84,
+    "hit@3": 0.96,
+    "mrr": 0.893,
+    "query_latency_ms_p50": 0.1,
+    "misses@3": [
+      "how full are our beds"
+    ]
+  },
+  "dense:nomic-embed-text": {
+    "hit@1": 0.88,
+    "hit@3": 0.96,
+    "mrr": 0.913,
+    "query_latency_ms_p50": 55.9,
+    "misses@3": [
+      "how much do we rely on agency nurses"
+    ],
+    "index_build_s": 18.5
+  },
+  "hybrid:nomic-embed-text": {
+    "hit@1": 0.88,
+    "hit@3": 0.96,
+    "mrr": 0.921,
+    "query_latency_ms_p50": 52.7,
+    "misses@3": [
+      "how full are our beds"
+    ],
+    "index_build_s": 0.0
+  },
+  "dense:embeddinggemma": {
+    "hit@1": 0.88,
+    "hit@3": 0.96,
+    "mrr": 0.93,
+    "query_latency_ms_p50": 50.6,
+    "misses@3": [
+      "how full are our beds"
+    ],
+    "index_build_s": 18.6
+  },
+  "hybrid:embeddinggemma": {
+    "hit@1": 0.92,
+    "hit@3": 0.96,
+    "mrr": 0.948,
+    "query_latency_ms_p50": 52.8,
+    "misses@3": [
+      "how full are our beds"
+    ],
+    "index_build_s": 0.0
+  },
+  "dense:qwen3-embedding:0.6b": {
+    "hit@1": 0.92,
+    "hit@3": 0.96,
+    "mrr": 0.95,
+    "query_latency_ms_p50": 98.6,
+    "misses@3": [
+      "what happens when a hospital files two cost reports in one year"
+    ],
+    "index_build_s": 32.2
+  },
+  "hybrid:qwen3-embedding:0.6b": {
+    "hit@1": 0.92,
+    "hit@3": 0.96,
+    "mrr": 0.941,
+    "query_latency_ms_p50": 99.8,
+    "misses@3": [
+      "how full are our beds"
+    ],
+    "index_build_s": 0.0
+  }
+}

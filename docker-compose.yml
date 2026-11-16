@@ -1,0 +1,66 @@
+# One command: docker compose up
+# Web app   -> http://localhost:3000   (Next.js, primary UI)
+# API       -> http://localhost:8000/docs
+# Streamlit -> http://localhost:8501   (lightweight analyst UI)
+services:
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama:/root/.ollama
+    ports:
+      - "11434:11434"
+    environment:
+      - OLLAMA_KEEP_ALIVE=30m
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      retries: 30
+    # Uncomment for an NVIDIA GPU:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices: [{ driver: nvidia, count: all, capabilities: [gpu] }]
+
+  # Pulls the default chat and embedding models once, then exits.
+  models:
+    image: ollama/ollama:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    entrypoint: ["/bin/sh", "-c", "ollama pull ${HOC_CHAT_MODEL:-qwen3.5:4b} && ollama pull ${HOC_EMBED_MODEL:-embeddinggemma}"]
+
+  web:
+    build:
+      context: ./web
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+    depends_on: [api]
+    ports:
+      - "3000:3000"
+
+  ui:
+    build: .
+    depends_on: [ollama]
+    environment:
+      - HOC_OLLAMA_HOST=http://ollama:11434
+      - HOC_CHAT_MODEL=${HOC_CHAT_MODEL:-qwen3.5:4b}
+      - HOC_EMBED_MODEL=${HOC_EMBED_MODEL:-embeddinggemma}
+    ports:
+      - "8501:8501"
+
+  api:
+    build: .
+    depends_on: [ollama]
+    command: ["uvicorn", "hospital_ops_copilot.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      - HOC_OLLAMA_HOST=http://ollama:11434
+      - HOC_CHAT_MODEL=${HOC_CHAT_MODEL:-qwen3.5:4b}
+      - HOC_EMBED_MODEL=${HOC_EMBED_MODEL:-embeddinggemma}
+      - HOC_CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+    ports:
+      - "8000:8000"
+
+volumes:
+  ollama:
