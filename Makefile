@@ -1,4 +1,7 @@
-.PHONY: install data index test lint ui api eval-retrieval eval-agent models
+.PHONY: dev install data index test lint ui api eval-retrieval eval-agent models
+
+dev:             ## run API + web app, open the browser (Ctrl+C stops both)
+	./scripts/dev.sh
 
 install:
 	pip install -e ".[dev]"

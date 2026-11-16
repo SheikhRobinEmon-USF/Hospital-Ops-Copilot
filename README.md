@@ -113,37 +113,29 @@ http://localhost:8501 for the Streamlit view. The first start pulls `qwen3.5:4b`
 
 ### Option B: Local (recommended on a Mac: Ollama uses the GPU)
 
-Requires Python 3.11+, Node.js 20+, and, for the copilot, [Ollama](https://ollama.com/download).
+Requires Python 3.11+, Node.js 20+, and, for AI answers, the [Ollama](https://ollama.com/download) app.
+
+One-time setup:
 
 ```bash
-python3 -m venv .venv && source .venv/bin/activate && pip install -e ".[dev]"
+git clone https://github.com/SheikhRobinEmon-USF/Hospital-Ops-Copilot.git && cd Hospital-Ops-Copilot
 ```
 
 ```bash
 ollama pull qwen3.5:4b && ollama pull embeddinggemma
 ```
 
-Start the API (terminal 1):
+Every time, from the project folder (installs anything missing, starts the API and the web app, opens
+http://localhost:3000; Ctrl+C stops both):
 
 ```bash
-hoc api
+./scripts/dev.sh
 ```
 
-Start the web app (terminal 2):
-
-```bash
-cd web && npm install && npm run dev
-```
-
-Open http://localhost:3000. The processed dataset ships in `data/processed/`, so it works right after
-install. Without Ollama, the copilot runs in offline analyst mode. For the Streamlit view instead, run
-`hoc ui`.
-
-To rebuild the data from CMS:
-
-```bash
-hoc download && hoc build
-```
+After pulling new code, just run it again; it installs updated dependencies itself. Without Ollama, the
+copilot runs in offline analyst mode. The processed dataset ships in `data/processed/`, so no download is
+needed. To run the pieces separately: `hoc api` (API), `cd web && npm run dev` (web app), `hoc ui`
+(Streamlit view).
 
 ### CLI
 
