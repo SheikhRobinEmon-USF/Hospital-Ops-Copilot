@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 import time
 
-from ..analytics.kpis import KPI_BY_KEY, KPIS
+from ..analytics.kpis import KPI_BY_KEY, KPIS, ordinal
 from ..analytics.store import DataStore
 from . import grounding
 from .answer import AgentAnswer
@@ -85,7 +85,7 @@ def detect_kpi(text: str) -> str | None:
 
 def detect_intent(q: str) -> str:
     t = q.lower()
-    if re.search(r"\b(what does|what is|define|definition|meaning|how is .* (calculated|computed|measured)|formula|methodology|how do you)\b", t) \
+    if re.search(r"\b(what does|what is|define|definition|meaning|how is .* (calculated|computed|measured)|formula|methodology|how do you|how are|why (is|are|do|does))\b", t) \
             and not re.search(r"\b(our|we|this hospital|\d{6})\b", t):
         return "docs"
     if re.search(r"what if|scenario|if (we|our|volume|rates?|costs?|expenses?|labor)|simulate|project(ion)?|"
@@ -228,7 +228,7 @@ class OfflineRouter:
                         "fte_per_adj_occupied_bed", "occupancy_rate", "alos", "days_in_ar"]
             rows = [x for x in rows if x["kpi"] in headline]
         for x in rows:
-            pct = f", {x['percentile']:.0f}th percentile" if x["percentile"] is not None else ""
+            pct = f", {ordinal(x['percentile'])} percentile" if x["percentile"] is not None else ""
             lines.append(f"- {x['label']}: {x['value_fmt']} vs peer median {x['peer_median_fmt']}{pct} ({x['status']}).")
         worse = [x["label"].lower() for x in d["kpis"] if x["status"] == "worse than peers"]
         better = [x["label"].lower() for x in d["kpis"] if x["status"] == "better than peers"]

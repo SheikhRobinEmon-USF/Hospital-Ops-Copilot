@@ -6,6 +6,11 @@
 import { takePrefetched } from "./prefetch";
 
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
+/**
+ * "server": call the FastAPI service (local development, Docker; the copilot can use a local model).
+ * "browser": compute everything in the visitor's browser (public demo on GitHub Pages; offline analyst).
+ */
+export const ENGINE: "server" | "browser" = process.env.NEXT_PUBLIC_ENGINE === "browser" ? "browser" : "server";
 
 export type Direction = "higher" | "lower" | null;
 export type Status =
@@ -252,7 +257,7 @@ async function get<T>(path: string, params: Parameters<typeof qs>[0] = {}, signa
   return res.json() as Promise<T>;
 }
 
-export const api = {
+const serverApi = {
   health: () => get<Health>("/health"),
   models: () => get<{ ollama_available: boolean; default: string; models: string[] }>("/models"),
   kpis: () => get<KpiDef[]>("/kpis"),
@@ -279,11 +284,35 @@ export const api = {
   },
 };
 
+type Api = typeof serverApi;
+
+/** Same interface as serverApi, computed by the in-browser engine (loaded on first use). */
+const browserApi: Api = new Proxy({} as Api, {
+  get: (_t, method: string) =>
+    async (...args: unknown[]) => {
+      const engine = await import("@/engine");
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return await (engine.browserApi as any)[method](...args);
+      } catch (e) {
+        if (e instanceof engine.NotFoundError) throw new ApiError(404, e.message);
+        throw e;
+      }
+    },
+});
+
+export const api: Api = ENGINE === "browser" ? browserApi : serverApi;
+
 /** Stream copilot events over server-sent events (POST + ReadableStream). */
 export async function* streamAsk(
   body: { question: string; ccn?: string; year?: number; model?: string; offline?: boolean; history?: { role: string; content: string }[] },
   signal?: AbortSignal,
 ): AsyncGenerator<StreamEvent> {
+  if (ENGINE === "browser") {
+    const engine = await import("@/engine");
+    yield* engine.streamAskLocal(body, signal) as AsyncGenerator<StreamEvent>;
+    return;
+  }
   const res = await fetch(`${API_URL}/ask/stream`, {
     method: "POST",
     headers: { "content-type": "application/json", accept: "text/event-stream" },

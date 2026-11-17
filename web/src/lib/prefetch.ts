@@ -5,7 +5,7 @@
  *
  * The URLs built here must match `api.ts` exactly (same parameter order).
  */
-import { API_URL } from "./api";
+import { API_URL, ENGINE } from "./api";
 
 export const HEADLINE_KPIS = [
   "operating_margin",
@@ -19,6 +19,11 @@ export const HEADLINE_KPIS = [
 ];
 
 export function prefetchScript(): string {
+  if (ENGINE === "browser") {
+    // Public demo: fetch the small precomputed snapshot of the default view right away.
+    const base = (process.env.NEXT_PUBLIC_BASE_PATH ?? "").replace(/\/$/, "");
+    return `(function(){try{var f=fetch(${JSON.stringify(`${base}/data/snapshot.json`)}).then(function(r){if(!r.ok)throw r;return r.json()});f.catch(function(){});window.__hocSnapshot=f}catch(e){}})();`;
+  }
   const body = `(function(){try{
 var A=${JSON.stringify(API_URL)},K=${JSON.stringify(HEADLINE_KPIS)};
 var p=new URLSearchParams(location.search),c=p.get("ccn");if(!/^\\d{6}$/.test(c||""))c="100128";

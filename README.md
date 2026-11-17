@@ -4,10 +4,10 @@ AI-powered hospital financial benchmarking and decision support using public CMS
 analytics, and evidence-grounded insights. Runs entirely on free, local models through
 [Ollama](https://ollama.com): no API keys, and no data leaves your machine.
 
-**Live demo:** https://sheikhrobinemon-usf.github.io/Hospital-Ops-Copilot/ (nothing to install). The public demo's
-copilot is the rule-based **offline analyst** (no AI model); run the project locally for AI answers from a local
-model through Ollama. The demo API runs on a free Hugging Face Space that sleeps when idle, so the first visit can
-take up to a minute to wake it.
+**Live demo:** https://sheikhrobinemon-usf.github.io/Hospital-Ops-Copilot/ (nothing to install, no sign-up). The demo
+runs entirely in your browser: the analytics and the copilot's rule-based **offline analyst** (no AI model) are a
+TypeScript port of the Python engine, verified against it by a 635-case parity test suite. Run the project locally
+for AI-written answers from a local model through Ollama.
 
 ![Hospital Ops Copilot web app](docs/images/web_overview.png)
 
@@ -209,11 +209,16 @@ docs/          architecture, methodology, KPI glossary, model selection, CMS sou
 
 ## Deployment
 
-Every push to `main` publishes the public demo through `.github/workflows/deploy.yml`:
+Every push to `main` publishes the public demo to GitHub Pages through `.github/workflows/deploy.yml`:
 
-- **API** to a Hugging Face Space (Docker, `deploy/space/`) in offline-analyst mode. Requires the `HF_TOKEN`
-  repository secret (a Hugging Face "Write" token).
-- **Web app** as a static export to GitHub Pages (Settings, Pages, Source: GitHub Actions).
+1. Python exports the data for the browser (`hoc export-web`): a compact fixed-point dataset, the KPI catalogue,
+   the documentation corpus, a small snapshot of the default view for an instant first paint, and parity fixtures.
+2. The parity suite (`npm test` in `web/`) checks that the TypeScript engine in `web/src/engine` reproduces the
+   Python results exactly.
+3. The web app is built as a static site with `NEXT_PUBLIC_ENGINE=browser` and published to GitHub Pages
+   (Settings, Pages, Source: GitHub Actions). No server or API keys are involved.
+
+To run the parity tests locally: `cd web && npm run data && npm test`.
 
 ## Development
 

@@ -1,9 +1,9 @@
 name: Deploy public demo
 
-# Publishes the public demo on every push to main:
-#   API  -> Hugging Face Space  https://huggingface.co/spaces/SheikhRobinEmon-USF/hospital-ops-copilot
-#   Web  -> GitHub Pages        https://sheikhrobinemon-usf.github.io/Hospital-Ops-Copilot/
-# The API job needs the repository secret HF_TOKEN (a Hugging Face "Write" token).
+# Publishes the public demo to GitHub Pages on every push to main:
+#   https://sheikhrobinemon-usf.github.io/Hospital-Ops-Copilot/
+# No server: the analytics and the offline analyst run in the visitor's browser (web/src/engine),
+# on data exported by Python (hoc export-web). Requires Settings > Pages > Source: GitHub Actions.
 
 on:
   push:
@@ -19,77 +19,45 @@ concurrency:
   group: deploy-demo
   cancel-in-progress: false
 
-env:
-  HF_SPACE: SheikhRobinEmon-USF/hospital-ops-copilot
-  API_URL: https://sheikhrobinemon-usf-hospital-ops-copilot.hf.space
-
 jobs:
-  api:
-    name: API to Hugging Face Space
+  build:
+    name: Build static site
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check for HF_TOKEN
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: |
-          if [ -z "$HF_TOKEN" ]; then
-            echo "::error::Add the HF_TOKEN repository secret (Settings > Secrets and variables > Actions)."
-            exit 1
-          fi
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install "huggingface_hub>=0.30"
-      - run: deploy/space/stage.sh "$RUNNER_TEMP/space"
-      - name: Create or update the Space
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: |
-          python - <<'PY'
-          import os
-          from huggingface_hub import HfApi
-          api = HfApi(token=os.environ["HF_TOKEN"])
-          repo = os.environ["HF_SPACE"]
-          api.create_repo(repo, repo_type="space", space_sdk="docker", exist_ok=True)
-          api.upload_folder(
-              folder_path=os.path.join(os.environ["RUNNER_TEMP"], "space"),
-              repo_id=repo,
-              repo_type="space",
-              commit_message=f"Deploy {os.environ['GITHUB_SHA'][:7]} from GitHub",
-              delete_patterns=["*"],
-          )
-          print(f"https://huggingface.co/spaces/{repo}")
-          PY
-
-  web-build:
-    name: Build web app for GitHub Pages
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: web
-    steps:
-      - uses: actions/checkout@v4
+          cache: pip
+      - run: pip install -e .
+      - name: Export data for the in-browser engine (with parity fixtures)
+        run: hoc export-web --out web/public/data --fixtures web/test-fixtures/parity.json
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: web/package-lock.json
       - run: npm ci
+        working-directory: web
+      - name: Parity tests (browser engine matches Python)
+        run: npm test
+        working-directory: web
       - name: Static export
+        working-directory: web
         env:
           STATIC_EXPORT: "1"
           BASE_PATH: /${{ github.event.repository.name }}
-          NEXT_PUBLIC_API_URL: ${{ env.API_URL }}
+          NEXT_PUBLIC_BASE_PATH: /${{ github.event.repository.name }}
+          NEXT_PUBLIC_ENGINE: browser
           NEXT_TELEMETRY_DISABLED: "1"
         run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:
           path: web/out
 
-  web-deploy:
+  deploy:
     name: Publish to GitHub Pages
-    needs: web-build
+    needs: build
     runs-on: ubuntu-latest
     environment:
       name: github-pages

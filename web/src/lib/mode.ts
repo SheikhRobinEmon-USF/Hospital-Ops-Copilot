@@ -31,7 +31,7 @@ export const MODE_COPY: Record<CopilotMode, { short: string; long: string }> = {
   demo: {
     short: "Offline analyst · no AI model",
     long:
-      "This public demo answers with the offline analyst: a rule-based engine that routes your question to the same analytics tools and fills in a fixed template. No language model is involved, so answers are instant and every figure is exact, but wording is not adaptive. Run the project locally with Ollama for AI-written answers (qwen3.5:4b).",
+      "This public demo runs entirely in your browser and answers with the offline analyst: a rule-based engine that routes your question to the same analytics tools and fills in a fixed template. No language model is involved, so answers are instant and every figure is exact, but wording is not adaptive. Run the project locally with Ollama for AI-written answers (qwen3.5:4b).",
   },
   offline: {
     short: "Offline analyst · no AI model",
