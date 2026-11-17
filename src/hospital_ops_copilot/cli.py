@@ -39,6 +39,10 @@ def main(argv: list[str] | None = None) -> int:
 
     sub.add_parser("ui", help="Run the Streamlit app")
 
+    w = sub.add_parser("export-web", help="Export data for the in-browser public demo")
+    w.add_argument("--out", default="web/public/data")
+    w.add_argument("--fixtures", help="Also write parity fixtures to this path (for web tests)")
+
     e = sub.add_parser("eval", help="Run evaluations")
     e.add_argument("suite", choices=["retrieval", "agent", "rescore", "report"])
     e.add_argument("--models", nargs="*")
@@ -88,6 +92,14 @@ def main(argv: list[str] | None = None) -> int:
             proc.wait()
             print("\nStopped.")
             return 0
+    elif args.cmd == "export-web":
+        import pandas as pd
+
+        from .config import get_settings
+        from .web_export import export_web
+        summary = export_web(Path(args.out), pd.read_parquet(get_settings().kpi_path),
+                             Path(args.fixtures) if args.fixtures else None)
+        print(json.dumps(summary))
     elif args.cmd == "eval":
         root = Path(__file__).resolve().parents[2]
         sys.path.insert(0, str(root))

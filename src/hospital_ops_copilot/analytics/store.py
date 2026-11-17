@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import difflib
 import re
 import threading
 from functools import cached_property
@@ -16,6 +15,27 @@ SOURCE_NAME = "CMS Hospital Provider Cost Report (HCRIS, form CMS-2552-10)"
 SOURCE_URL = "https://data.cms.gov/provider-compliance/cost-report/hospital-provider-cost-report"
 
 _STOP = {"hospital", "medical", "center", "the", "of", "and", "health", "regional", "memorial", "inc"}
+
+
+def _bigrams(text: str) -> list[str]:
+    t = re.sub(r"\s+", " ", text.strip())
+    return [t[i:i + 2] for i in range(len(t) - 1)]
+
+
+def _similarity(a: str, b: str) -> float:
+    """Dice coefficient over character bigrams (multiset), in [0, 1]."""
+    x, y = _bigrams(a), _bigrams(b)
+    if not x or not y:
+        return 0.0
+    pool: dict[str, int] = {}
+    for g in y:
+        pool[g] = pool.get(g, 0) + 1
+    common = 0
+    for g in x:
+        if pool.get(g, 0) > 0:
+            pool[g] -= 1
+            common += 1
+    return 2.0 * common / (len(x) + len(y))
 
 
 def _tokens(text: str) -> list[str]:
@@ -58,7 +78,7 @@ class DataStore:
     @cached_property
     def _directory(self) -> pd.DataFrame:
         """One row per hospital: its most recent report."""
-        d = self.df.sort_values("year").groupby("ccn", as_index=False).tail(1)
+        d = self.df.sort_values(["ccn", "year"], kind="mergesort").groupby("ccn", as_index=False).tail(1)
         d = d[["ccn", "name", "city", "state", "facility_type", "facility_type_desc", "beds", "year"]]
         d = d.rename(columns={"year": "latest_year"}).reset_index(drop=True)
         d["_tokens"] = d["name"].map(lambda n: set(_tokens(n)))
@@ -108,11 +128,13 @@ class DataStore:
         d = d.assign(_score=scores)
         best = max(scores) if scores else 0
         hits = d[(d["_score"] > 0) & (d["_score"] >= best * 0.6)]
-        hits = hits.sort_values(["_score", "beds"], ascending=[False, False])
+        hits = hits.sort_values(["_score", "beds", "ccn"], ascending=[False, False, True], kind="mergesort",
+                                na_position="last")
         if hits.empty:
-            names = d["name"].tolist()
-            close = difflib.get_close_matches(q.upper(), names, n=limit, cutoff=0.6)
-            hits = d[d["name"].isin(close)]
+            # Typo-tolerant fallback: character-bigram similarity (Dice coefficient) with the full query.
+            sims = [_similarity(q.upper(), n) for n in d["name"]]
+            d = d.assign(_sim=sims)
+            hits = d[d["_sim"] >= 0.6].sort_values(["_sim", "ccn"], ascending=[False, True], kind="mergesort")
         return _records(hits.head(limit))
 
 

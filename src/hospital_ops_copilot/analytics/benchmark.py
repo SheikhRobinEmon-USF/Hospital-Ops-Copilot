@@ -11,7 +11,7 @@ from dataclasses import asdict, dataclass, field
 import numpy as np
 import pandas as pd
 
-from .kpis import KPI_BY_KEY, KPIS, format_usd, format_value
+from .kpis import KPI_BY_KEY, KPIS, format_usd, format_value, ordinal
 from .store import SOURCE_NAME, DataStore
 
 PEER_DIMENSIONS = {
@@ -388,7 +388,7 @@ def rank(store: DataStore, kpi: str, year: int | None = None, state: str | None 
     ascending = (k.direction == "lower") == best_first if k.direction else not best_first
     order = "ASC" if ascending else "DESC"
     q = (f"SELECT ccn, name, city, state, facility_type, beds, {kpi} AS value FROM hospital_year "
-         f"WHERE {' AND '.join(where)} ORDER BY value {order} LIMIT ?")
+         f"WHERE {' AND '.join(where)} ORDER BY value {order}, ccn ASC LIMIT ?")
     df = store.sql(q, params + [int(top_n)])
     n = store.sql(f"SELECT count(*) AS n FROM hospital_year WHERE {' AND '.join(where)}", params)["n"].iloc[0]
     rows = df.to_dict("records")
@@ -400,3 +400,30 @@ def rank(store: DataStore, kpi: str, year: int | None = None, state: str | None 
             "filters": {"state": state, "facility_type": facility_type, "min_beds": min_beds},
             "hospitals_considered": int(n), "results": rows,
             "source": {"dataset": SOURCE_NAME, "year": year, "fields": list(k.fields)}}
+
+
+def insights(store: DataStore, ccn: str, year: int | None = None, peer_dims: list[str] | None = None) -> dict:
+    """Proactive, deterministic highlights: biggest strengths, risks, and the top sized opportunity."""
+    b = benchmark(store, ccn, year, peer_dims)
+    o = opportunities(store, ccn, year, peer_dims)
+    directional = [r for r in b["kpis"] if r["percentile"] is not None and r["direction"]]
+
+    def goodness(r: dict) -> float:
+        return r["percentile"] if r["direction"] == "higher" else 100 - r["percentile"]
+
+    items = []
+    for r in sorted((r for r in directional if r["status"] == "worse than peers"), key=goodness)[:3]:
+        items.append({"kind": "risk", "kpi": r["kpi"], "title": f"{r['label']} trails peers",
+                      "detail": f"{r['value_fmt']} vs peer median {r['peer_median_fmt']} ({ordinal(r['percentile'])} percentile).",
+                      "ask": f"Why is our {r['label'].lower()} worse than peers, and what would closing the gap be worth?"})
+    for r in sorted((r for r in directional if r["status"] == "better than peers"), key=goodness, reverse=True)[:2]:
+        items.append({"kind": "strength", "kpi": r["kpi"], "title": f"{r['label']} leads peers",
+                      "detail": f"{r['value_fmt']} vs peer median {r['peer_median_fmt']} ({ordinal(r['percentile'])} percentile).",
+                      "ask": f"How has our {r['label'].lower()} trended over time?"})
+    sized = [x for x in o["opportunities"] if x["annual_impact_usd"]]
+    if sized:
+        top = sized[0]
+        items.insert(0, {"kind": "opportunity", "kpi": top["kpi"], "title": f"{top['area']}: {top['annual_impact_fmt']}",
+                         "detail": f"{top['current']} vs target {top['target']} ({top['impact_type']}).",
+                         "ask": "What are our biggest savings opportunities?"})
+    return {"hospital": b["hospital"], "peer_group": b["peer_group"], "insights": items}
