@@ -34,8 +34,17 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: web/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Export data and parity fixtures for the in-browser engine
+        working-directory: .
+        run: pip install -e . && hoc export-web --out web/public/data --fixtures web/test-fixtures/parity.json
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
+      - name: Parity tests (browser engine matches Python)
+        run: npm test
       - run: npm run build
       - run: npm run build-storybook -- --quiet

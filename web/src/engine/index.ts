@@ -71,13 +71,19 @@ export function getEngine(): Promise<Engine> {
   return enginePromise;
 }
 
-/** Warm the full dataset when the browser is idle, so later interactions are instant. */
+/**
+ * Warm the full dataset after the page has loaded and settled, so later interactions are instant without
+ * competing with the first paint for bandwidth. Any request that needs the data starts it immediately.
+ */
+let warmScheduled = false;
 export function warmEngine(): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || warmScheduled) return;
+  warmScheduled = true;
   const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => void }).requestIdleCallback;
   const start = () => void getEngine().catch(() => {});
-  if (ric) ric(start, { timeout: 4000 });
-  else setTimeout(start, 1500);
+  const afterLoad = () => setTimeout(() => (ric ? ric(start, { timeout: 5000 }) : start()), 2500);
+  if (document.readyState === "complete") afterLoad();
+  else window.addEventListener("load", afterLoad, { once: true });
 }
 
 async function cached<T>(key: string, compute: (e: Engine) => T): Promise<T> {

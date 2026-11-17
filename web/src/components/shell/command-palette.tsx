@@ -4,7 +4,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { useQuery } from "@tanstack/react-query";
 import { Command } from "cmdk";
 import { Building2, CornerDownLeft, Loader2, Sparkles } from "lucide-react";
-import { useDeferredValue, useState } from "react";
+import { useDeferredValue, useEffect, useState } from "react";
 
 import { api } from "@/lib/api";
 import { titleCase } from "@/lib/utils";
@@ -31,9 +31,19 @@ export function CommandPalette() {
     staleTime: 60_000,
   });
 
+  // Keep the highlight on the best hospital match once results arrive; otherwise an "Ask copilot" row that
+  // rendered first would stay highlighted and Enter would ask a question instead of opening the hospital.
+  const [selected, setSelected] = useState("");
+  const firstHit = search.data?.[0]?.ccn;
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (firstHit) setSelected(`h-${firstHit}`);
+  }, [firstHit, deferred]);
+
   const close = () => {
     setPaletteOpen(false);
     setQuery("");
+    setSelected("");
   };
 
   return (
@@ -42,7 +52,7 @@ export function CommandPalette() {
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" />
         <Dialog.Content className="fixed left-1/2 top-[14vh] z-50 w-[min(640px,calc(100vw-2rem))] -translate-x-1/2 overflow-hidden rounded-2xl bg-[var(--surface-strong)] shadow-2xl ring-1 ring-border">
           <Dialog.Title className="sr-only">Search hospitals and actions</Dialog.Title>
-          <Command shouldFilter={false} loop>
+          <Command shouldFilter={false} loop value={selected} onValueChange={setSelected}>
             <div className="flex items-center gap-3 border-b border-border px-4">
               {search.isFetching ? <Loader2 className="size-4 animate-spin text-muted" /> : <Building2 className="size-4 text-muted" />}
               <Command.Input
