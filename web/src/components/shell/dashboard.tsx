@@ -8,7 +8,7 @@ import { HospitalHeader, Overview } from "@/components/sections/overview";
 import { ErrorState, Skeleton } from "@/components/ui/primitives";
 import { Info, Loader2, X } from "lucide-react";
 
-import { API_URL } from "@/lib/api";
+import { API_URL, ENGINE } from "@/lib/api";
 import { RUN_LOCALLY_URL, useCopilotMode } from "@/lib/mode";
 import { useBenchmark, useHealth, useInsights, useProfile } from "@/lib/queries";
 import { useWorkspace, WorkspaceProvider } from "@/lib/workspace";
@@ -112,6 +112,9 @@ const HOSTED = !/localhost|127\.0\.0\.1/.test(API_URL);
 
 function ApiGate({ children }: { children: React.ReactNode }) {
   const health = useHealth();
+  if (health.isError && ENGINE === "browser") {
+    return <ErrorState title="Could not load the demo data" detail="Check your connection and reload the page." />;
+  }
   if (health.isError) {
     return (
       <ErrorState

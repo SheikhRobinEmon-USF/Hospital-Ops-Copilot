@@ -142,10 +142,10 @@ class Retriever:
         else:
             fused = np.zeros(len(self.chunks))
             for scores in (bm, dense):
-                order = np.argsort(-scores)
+                order = np.argsort(-scores, kind="stable")
                 for r, idx in enumerate(order):
                     fused[idx] += 1.0 / (rrf_k + r + 1)
-        order = np.argsort(-fused)[:k]
+        order = np.argsort(-fused, kind="stable")[:k]
         return [Hit(self.chunks[i], float(fused[i]), r + 1) for r, i in enumerate(order) if fused[i] > 0]
 
     @property

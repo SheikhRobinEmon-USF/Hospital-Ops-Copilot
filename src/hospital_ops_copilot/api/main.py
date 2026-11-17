@@ -114,29 +114,7 @@ def profile(ccn: str, year: int | None = None) -> dict:
 @app.get("/hospitals/{ccn}/insights")
 def insights(ccn: str, year: int | None = None, peer_dims: list[str] | None = Query(None)) -> dict:
     """Proactive, deterministic highlights: biggest strengths, risks, and the top sized opportunity."""
-    b = _cached(bm.benchmark, get_store(), ccn, year, peer_dims)
-    o = _cached(bm.opportunities, get_store(), ccn, year, peer_dims)
-    directional = [r for r in b["kpis"] if r["percentile"] is not None and r["direction"]]
-
-    def goodness(r: dict) -> float:
-        return r["percentile"] if r["direction"] == "higher" else 100 - r["percentile"]
-
-    items = []
-    for r in sorted((r for r in directional if r["status"] == "worse than peers"), key=goodness)[:3]:
-        items.append({"kind": "risk", "kpi": r["kpi"], "title": f"{r['label']} trails peers",
-                      "detail": f"{r['value_fmt']} vs peer median {r['peer_median_fmt']} ({r['percentile']:.0f}th percentile).",
-                      "ask": f"Why is our {r['label'].lower()} worse than peers, and what would closing the gap be worth?"})
-    for r in sorted((r for r in directional if r["status"] == "better than peers"), key=goodness, reverse=True)[:2]:
-        items.append({"kind": "strength", "kpi": r["kpi"], "title": f"{r['label']} leads peers",
-                      "detail": f"{r['value_fmt']} vs peer median {r['peer_median_fmt']} ({r['percentile']:.0f}th percentile).",
-                      "ask": f"How has our {r['label'].lower()} trended over time?"})
-    sized = [x for x in o["opportunities"] if x["annual_impact_usd"]]
-    if sized:
-        top = sized[0]
-        items.insert(0, {"kind": "opportunity", "kpi": top["kpi"], "title": f"{top['area']}: {top['annual_impact_fmt']}",
-                         "detail": f"{top['current']} vs target {top['target']} ({top['impact_type']}).",
-                         "ask": "What are our biggest savings opportunities?"})
-    return {"hospital": b["hospital"], "peer_group": b["peer_group"], "insights": items}
+    return _cached(bm.insights, get_store(), ccn, year, peer_dims)
 
 
 @app.get("/hospitals/{ccn}/benchmark")

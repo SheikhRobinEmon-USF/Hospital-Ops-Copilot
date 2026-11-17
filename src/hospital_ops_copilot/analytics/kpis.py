@@ -209,6 +209,13 @@ def format_value(key: str, value: float | None) -> str:
     return f"{value:.2f}"
 
 
+def ordinal(value: float) -> str:
+    """Whole-number ordinal: 1st, 2nd, 3rd, 4th, 11th, 12th, 13th, 21st, 53rd."""
+    n = int(f"{value:.0f}")
+    suffix = "th" if 10 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
+
+
 def format_usd(value: float | None) -> str:
     if value is None or value != value:
         return "n/a"
