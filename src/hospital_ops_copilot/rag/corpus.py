@@ -101,7 +101,10 @@ def _pdf_text(path: Path) -> str:
     from pypdf import PdfReader
 
     text = "\n".join(p.extract_text() or "" for p in PdfReader(str(path)).pages)
-    cache.write_text(text)
+    try:
+        cache.write_text(text)
+    except OSError:
+        pass  # read-only filesystem (for example a hosted container): skip the cache
     return text
 
 

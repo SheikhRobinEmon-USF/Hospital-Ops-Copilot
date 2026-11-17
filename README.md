@@ -4,6 +4,11 @@ AI-powered hospital financial benchmarking and decision support using public CMS
 analytics, and evidence-grounded insights. Runs entirely on free, local models through
 [Ollama](https://ollama.com): no API keys, and no data leaves your machine.
 
+**Live demo:** https://sheikhrobinemon-usf.github.io/Hospital-Ops-Copilot/ (nothing to install). The public demo's
+copilot is the rule-based **offline analyst** (no AI model); run the project locally for AI answers from a local
+model through Ollama. The demo API runs on a free Hugging Face Space that sleeps when idle, so the first visit can
+take up to a minute to wake it.
+
 ![Hospital Ops Copilot web app](docs/images/web_overview.png)
 
 ## What it does
@@ -201,6 +206,14 @@ evals/         retrieval and agent evaluation suites
 tests/         unit and integration tests (synthetic data, no network)
 docs/          architecture, methodology, KPI glossary, model selection, CMS source documents
 ```
+
+## Deployment
+
+Every push to `main` publishes the public demo through `.github/workflows/deploy.yml`:
+
+- **API** to a Hugging Face Space (Docker, `deploy/space/`) in offline-analyst mode. Requires the `HF_TOKEN`
+  repository secret (a Hugging Face "Write" token).
+- **Web app** as a static export to GitHub Pages (Settings, Pages, Source: GitHub Actions).
 
 ## Development
 

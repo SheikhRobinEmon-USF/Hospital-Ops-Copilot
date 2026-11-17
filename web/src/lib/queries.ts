@@ -2,7 +2,7 @@
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
-import { api } from "./api";
+import { api, API_URL } from "./api";
 import { useWorkspace } from "./workspace";
 
 /** Data hooks bound to the current workspace selection. keepPreviousData avoids layout flashes on change. */
@@ -53,7 +53,15 @@ export function useKpiDefs() {
 }
 
 export function useHealth() {
-  return useQuery({ queryKey: ["health"], queryFn: api.health, staleTime: 30_000, retry: 0 });
+  // A free hosted API sleeps when idle and takes up to a minute to wake: keep retrying instead of failing.
+  const hosted = !/localhost|127\.0\.0\.1/.test(API_URL);
+  return useQuery({
+    queryKey: ["health"],
+    queryFn: api.health,
+    staleTime: 30_000,
+    retry: (count) => count < (hosted ? 40 : 1),
+    retryDelay: 3000,
+  });
 }
 
 export function useModels() {

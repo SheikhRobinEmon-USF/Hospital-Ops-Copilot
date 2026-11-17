@@ -6,7 +6,10 @@ import { useEffect, useState } from "react";
 
 import { HospitalHeader, Overview } from "@/components/sections/overview";
 import { ErrorState, Skeleton } from "@/components/ui/primitives";
+import { Info, Loader2, X } from "lucide-react";
+
 import { API_URL } from "@/lib/api";
+import { RUN_LOCALLY_URL, useCopilotMode } from "@/lib/mode";
 import { useBenchmark, useHealth, useInsights, useProfile } from "@/lib/queries";
 import { useWorkspace, WorkspaceProvider } from "@/lib/workspace";
 
@@ -99,10 +102,13 @@ function FirstView({ children }: { children: React.ReactNode }) {
   const profile = useProfile();
   const bm = useBenchmark();
   const insights = useInsights();
-  const waiting = !profile.data || (section === "overview" && (!bm.data || !insights.data) && !bm.isError && !insights.isError);
+  const health = useHealth();
+  const waiting = !health.data || !profile.data || (section === "overview" && (!bm.data || !insights.data) && !bm.isError && !insights.isError);
   if (profile.isError) return <ErrorState title="Could not load this hospital" detail={String(profile.error)} />;
   return waiting ? <FirstViewSkeleton /> : <>{children}</>;
 }
+
+const HOSTED = !/localhost|127\.0\.0\.1/.test(API_URL);
 
 function ApiGate({ children }: { children: React.ReactNode }) {
   const health = useHealth();
@@ -110,11 +116,51 @@ function ApiGate({ children }: { children: React.ReactNode }) {
     return (
       <ErrorState
         title="Cannot reach the Hospital Ops Copilot API"
-        detail={`Start it with \`hoc api\` (expected at ${API_URL}), then reload this page.`}
+        detail={
+          HOSTED
+            ? "The demo server did not respond. It may be restarting; please try again in a minute."
+            : `Start it with \`hoc api\` (expected at ${API_URL}), then reload this page.`
+        }
       />
     );
   }
+  if (health.isPending && health.failureCount > 0) {
+    return (
+      <div className="grid place-items-center rounded-2xl border border-dashed border-border px-6 py-16 text-center" role="status">
+        <Loader2 className="size-6 animate-spin text-[var(--accent)]" />
+        <p className="mt-4 text-sm font-medium">{HOSTED ? "Waking up the demo server..." : "Connecting to the API..."}</p>
+        <p className="mt-1 max-w-md text-xs leading-relaxed text-muted">
+          {HOSTED
+            ? "The free hosting pauses the server when nobody has used it for a while. It usually starts in under a minute; this page continues on its own."
+            : `Waiting for the API at ${API_URL}. Start it with \`hoc api\` or \`./scripts/dev.sh\`.`}
+        </p>
+      </div>
+    );
+  }
   return <>{children}</>;
+}
+
+/** Tells public-demo visitors up front that the copilot is rule-based, not an AI model. */
+function DemoBanner() {
+  const { mode } = useCopilotMode();
+  const [hidden, setHidden] = useState(false);
+  if (mode !== "demo" || hidden) return null;
+  return (
+    <div className="flex items-start gap-3 rounded-xl bg-amber-500/[0.07] px-4 py-3 text-sm ring-1 ring-inset ring-amber-500/25" role="note">
+      <Info className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+      <p className="flex-1 leading-relaxed">
+        <span className="font-semibold">Public demo.</span> All figures come from real CMS cost reports. The copilot here is the{" "}
+        <span className="font-semibold">offline analyst</span>, a rule-based engine with no AI model, so answers are instant and templated.{" "}
+        <a href={RUN_LOCALLY_URL} target="_blank" rel="noreferrer" className="font-medium text-[var(--accent)] hover:underline">
+          Run it locally
+        </a>{" "}
+        for AI-written answers from a local model (qwen3.5:4b via Ollama).
+      </p>
+      <button onClick={() => setHidden(true)} aria-label="Dismiss" className="rounded p-0.5 text-muted hover:text-foreground">
+        <X className="size-4" />
+      </button>
+    </div>
+  );
 }
 
 export function Dashboard() {
@@ -130,6 +176,7 @@ export function Dashboard() {
           <Topbar />
           <main id="main" className="mx-auto w-full max-w-[1400px] flex-1 space-y-8 px-4 py-6 lg:px-8 lg:py-8">
             <ApiGate>
+              <DemoBanner />
               <FirstView>
                 <HospitalHeader />
                 <SectionView />
