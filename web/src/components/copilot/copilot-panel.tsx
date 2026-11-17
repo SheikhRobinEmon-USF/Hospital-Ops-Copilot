@@ -24,6 +24,7 @@ import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/primitives";
 import { Tooltip } from "@/components/ui/tooltip";
 import { type FinalEvent, streamAsk } from "@/lib/api";
+import { MODE_COPY, RUN_LOCALLY_URL, useCopilotMode } from "@/lib/mode";
 import { useModels, useProfile } from "@/lib/queries";
 import { cn, TOOL_LABEL, titleCase } from "@/lib/utils";
 import { useWorkspace } from "@/lib/workspace";
@@ -96,6 +97,7 @@ export function CopilotPanel() {
   const { ccn, year, copilotOpen, setCopilotOpen, pendingQuestion, consumeQuestion } = useWorkspace();
   const profile = useProfile();
   const models = useModels();
+  const { mode } = useCopilotMode();
   const [model, setModel] = useState<string | undefined>(undefined);
   const [threads, setThreads] = useState<Record<string, Turn[]>>({});
   const [input, setInput] = useState("");
@@ -202,9 +204,22 @@ export function CopilotPanel() {
           <header className="flex items-center gap-2 border-b border-border px-4 py-3">
             <div className="grid size-7 place-items-center rounded-lg bg-gradient-to-br from-[var(--accent)] to-[var(--accent-2)] text-white"><Sparkles className="size-4" /></div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold leading-tight">Copilot</p>
+              <p className="flex items-center gap-1.5 text-sm font-semibold leading-tight">
+                Copilot
+                <Tooltip content={MODE_COPY[mode].long} className="max-w-sm">
+                  <span
+                    tabIndex={0}
+                    className={cn(
+                      "cursor-help rounded-full px-1.5 py-0.5 text-[10px] font-medium ring-1 ring-inset",
+                      mode === "ai" ? "bg-emerald-500/10 text-emerald-600 ring-emerald-500/25 dark:text-emerald-400" : "bg-amber-500/10 text-amber-700 ring-amber-500/25 dark:text-amber-400",
+                    )}
+                  >
+                    {mode === "ai" ? "AI model" : mode === "unknown" ? "..." : "No AI model"}
+                  </span>
+                </Tooltip>
+              </p>
               <p className="truncate text-[11px] text-muted">
-                {models.data?.ollama_available ? "Local model via Ollama · data never leaves your machine" : "Offline analyst · start Ollama for AI answers"}
+                {mode === "ai" ? `${activeModel ?? "Local model"} via Ollama · runs on this machine` : mode === "demo" ? "Rule-based offline analyst · instant, exact figures" : mode === "offline" ? "Rule-based offline analyst · open Ollama for AI answers" : "Connecting..."}
               </p>
             </div>
             {models.data?.ollama_available && models.data.models.length > 0 && (
@@ -234,6 +249,23 @@ export function CopilotPanel() {
                     Answers come from CMS cost report data through tools. Every figure is checked against the data, with sources.
                   </p>
                 </div>
+                {(mode === "demo" || mode === "offline") && (
+                  <div className="rounded-xl bg-amber-500/[0.07] p-3 text-xs leading-relaxed ring-1 ring-inset ring-amber-500/25">
+                    <p className="font-semibold text-amber-700 dark:text-amber-400">
+                      {mode === "demo" ? "Public demo: no AI model" : "Ollama not detected: no AI model"}
+                    </p>
+                    <p className="mt-1 text-foreground/80">
+                      {mode === "demo"
+                        ? "Questions are answered by the offline analyst, a rule-based engine that picks the right analysis and fills in a template. Figures are exact; wording is fixed."
+                        : "The offline analyst is answering. Open the Ollama app and reload for AI-written answers."}
+                    </p>
+                    {mode === "demo" && (
+                      <a href={RUN_LOCALLY_URL} target="_blank" rel="noreferrer" className="mt-1.5 inline-block font-medium text-[var(--accent)] hover:underline">
+                        Run it locally with the AI model (qwen3.5:4b) →
+                      </a>
+                    )}
+                  </div>
+                )}
                 <div className="flex flex-col gap-1.5">
                   {STARTERS.map((s, i) => (
                     <m.button
@@ -273,7 +305,7 @@ export function CopilotPanel() {
                   }
                 }}
                 rows={1}
-                placeholder={voice.listening ? "Listening..." : `Ask about ${name}...`}
+                placeholder={voice.listening ? "Listening..." : mode === "ai" ? `Ask the AI about ${name}...` : "Ask the offline analyst..."}
                 className="max-h-40 min-h-9 flex-1 resize-none bg-transparent px-2 py-2 text-sm outline-none placeholder:text-muted"
                 aria-label="Question"
               />
@@ -290,7 +322,7 @@ export function CopilotPanel() {
                 <Button type="submit" variant="primary" size="icon" className="size-9" aria-label="Send" disabled={!input.trim()}><ArrowUp /></Button>
               )}
             </div>
-            <p className="mt-1.5 px-1 text-[10px] text-muted">Enter to send · Shift+Enter for a new line · AI can misread data; verified figures are marked.</p>
+            <p className="mt-1.5 px-1 text-[10px] text-muted">Enter to send · Shift+Enter for a new line · {mode === "ai" ? "AI can misread data; verified figures are marked." : "Rule-based answers, no AI model; verified figures are marked."}</p>
           </form>
         </m.aside>
       )}
@@ -308,7 +340,7 @@ function TurnView({ turn, isLast, onFollowup }: { turn: Turn; isLast: boolean; o
       {turn.steps.length > 0 && <AgentTimeline steps={turn.steps} done={!streaming} />}
 
       {streaming && turn.steps.length === 0 && !turn.answer && (
-        <div className="flex items-center gap-2 text-xs text-muted"><Loader2 className="size-3.5 animate-spin" /> {turn.backend === "offline" ? "Analyzing..." : "Thinking about which data to pull..."}</div>
+        <div className="flex items-center gap-2 text-xs text-muted"><Loader2 className="size-3.5 animate-spin" /> {turn.backend === "offline" ? "Offline analyst is routing your question..." : "AI model is choosing which data to pull..."}</div>
       )}
 
       {turn.answer && (
@@ -332,7 +364,7 @@ function TurnView({ turn, isLast, onFollowup }: { turn: Turn; isLast: boolean; o
                 </span>
               </Tooltip>
             )}
-            <span className="rounded-full bg-foreground/5 px-2 py-0.5 text-muted">{turn.final.backend === "ollama" ? turn.final.model : "offline analyst"} · {turn.final.latency_s.toFixed(1)}s</span>
+            <span className="rounded-full bg-foreground/5 px-2 py-0.5 text-muted">{turn.final.backend === "ollama" ? `AI model: ${turn.final.model}` : "Offline analyst (rule-based, no AI model)"} · {turn.final.latency_s.toFixed(1)}s</span>
           </div>
           {turn.final.notes.map((n) => <p key={n} className="text-[11px] text-muted">{n}</p>)}
           {turn.final.sources.length > 0 && <Sources final={turn.final} />}

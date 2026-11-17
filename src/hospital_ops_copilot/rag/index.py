@@ -161,5 +161,7 @@ _retriever: Retriever | None = None
 def get_retriever() -> Retriever:
     global _retriever
     if _retriever is None:
-        _retriever = Retriever()
+        settings = get_settings()
+        # Offline deployments have no embedding model; use keyword search without probing for one.
+        _retriever = Retriever(mode="bm25" if settings.llm_backend == "offline" else "hybrid")
     return _retriever

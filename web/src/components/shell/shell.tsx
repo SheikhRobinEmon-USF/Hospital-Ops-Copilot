@@ -25,6 +25,7 @@ import { useEffect, type ReactNode } from "react";
 import { Button, Kbd, Segmented } from "@/components/ui/primitives";
 import { Tooltip } from "@/components/ui/tooltip";
 import type { PeerDim } from "@/lib/api";
+import { MODE_COPY, useCopilotMode } from "@/lib/mode";
 import { useHealth, useProfile } from "@/lib/queries";
 import { cn, PEER_DIM_LABEL, titleCase } from "@/lib/utils";
 import { type Section, useWorkspace } from "@/lib/workspace";
@@ -51,6 +52,7 @@ export function AuroraBackground() {
 export function Sidebar() {
   const { section, set } = useWorkspace();
   const health = useHealth();
+  const { mode, model } = useCopilotMode();
   return (
     <aside className="glass sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-y-0 border-l-0 px-3 py-5 lg:flex">
       <div className="flex items-center gap-2.5 px-2">
@@ -89,10 +91,12 @@ export function Sidebar() {
         })}
       </nav>
       <div className="mt-auto space-y-3 px-2 text-xs text-muted">
-        <div className="flex items-center gap-2">
-          <span className={cn("size-2 rounded-full", health.data?.ollama_available ? "bg-emerald-500 shadow-[0_0_8px] shadow-emerald-500/60" : health.isError ? "bg-rose-500" : "bg-amber-500")} />
-          {health.isError ? "API offline" : health.data?.ollama_available ? `Local AI: ${health.data.chat_model}` : "Offline analyst mode"}
-        </div>
+        <Tooltip content={MODE_COPY[mode].long} side="right" className="max-w-sm">
+          <div tabIndex={0} className="flex cursor-help items-center gap-2">
+            <span className={cn("size-2 shrink-0 rounded-full", mode === "ai" ? "bg-emerald-500 shadow-[0_0_8px] shadow-emerald-500/60" : health.isError ? "bg-rose-500" : "bg-amber-500")} />
+            {health.isError ? "API offline" : mode === "ai" ? `AI model: ${model}` : mode === "demo" ? "Public demo · offline analyst (no AI)" : mode === "offline" ? "Offline analyst (no AI)" : "Connecting..."}
+          </div>
+        </Tooltip>
         <p className="leading-relaxed">
           Data: <a className="underline decoration-dotted underline-offset-2 hover:text-foreground" href="https://data.cms.gov/provider-compliance/cost-report/hospital-provider-cost-report" target="_blank" rel="noreferrer">CMS Hospital Provider Cost Report</a>
           {health.data && `, ${health.data.years[0]} to ${health.data.years.at(-1)}, ${health.data.hospitals.toLocaleString()} hospitals.`}

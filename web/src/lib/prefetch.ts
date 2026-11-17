@@ -27,7 +27,7 @@ if(v!=="overview")return;
 function q(o){var s=new URLSearchParams();o.forEach(function(kv){if(kv[1]!==null&&kv[1]!==undefined&&kv[1]!=="")s.append(kv[0],kv[1])});var t=s.toString();return t?"?"+t:""}
 var Y=y?[["year",y]]:[],D=d.map(function(x){return["peer_dims",x]});
 var urls=["/health","/kpis","/hospitals/"+c+q(Y),"/hospitals/"+c+"/benchmark"+q(Y.concat(D)),"/hospitals/"+c+"/insights"+q(Y.concat(D)),"/hospitals/"+c+"/trend"+q(K.map(function(k){return["kpis",k]}).concat(D))];
-var w=window.__hocPrefetch={};urls.forEach(function(u){w[A+u]=fetch(A+u).then(function(r){if(!r.ok)throw r;return r.json()})});
+var w=window.__hocPrefetch={};urls.forEach(function(u){var f=fetch(A+u).then(function(r){if(!r.ok)throw r;return r.json()});f.catch(function(){});w[A+u]=f});
 }catch(e){}})();`;
   return body.replace(/\n/g, "");
 }
