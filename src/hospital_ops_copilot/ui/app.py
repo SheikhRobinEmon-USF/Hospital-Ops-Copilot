@@ -86,9 +86,10 @@ def sidebar() -> tuple[str, int, list[str], str | None]:
 
 
 def header(p: dict) -> None:
+    beds = "?" if p["beds"] is None else f"{p['beds']:.0f}"
     st.title(p["name"].title())
     st.caption(f"CCN {p['ccn']} · {p['city']}, {p['state']} · {p['facility_type']} · {p['ownership']} · "
-               f"{p['beds']:.0f} beds · {p['urban_rural']} (Medicare indicator) · fiscal period {p['fiscal_period']}")
+               f"{beds} beds · {p['urban_rural']} (Medicare indicator) · fiscal period {p['fiscal_period']}")
     if p["data_quality_flags"]:
         st.warning("Data quality flags for this report: " + ", ".join(p["data_quality_flags"]) +
                    ". Flagged KPIs are excluded as implausible values.")
@@ -111,7 +112,10 @@ def overview(p: dict, b: dict) -> None:
         delta = None
         if r["value"] is not None and r["peer_median"] is not None:
             diff = r["value"] - r["peer_median"]
-            delta = f"{diff * 100:+.1f} pts vs median" if k.unit == "pct" else f"{format_value(key, diff)} vs median"
+            if k.unit == "pct":
+                delta = f"{diff * 100:+.1f} pts vs median"
+            else:
+                delta = f"{'+' if diff >= 0 else '-'}{format_value(key, abs(diff))} vs median"
         cols[i % 4].metric(k.label, r["value_fmt"], delta,
                            delta_color="normal" if k.direction == "higher" else "inverse" if k.direction == "lower" else "off",
                            help=k.description)

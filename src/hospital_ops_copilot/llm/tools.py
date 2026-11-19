@@ -175,7 +175,9 @@ class ToolExecutor:
                 args = json.loads(args) if args.strip() else {}
             except json.JSONDecodeError:
                 args = {}
-        args = {k: v for k, v in (args or {}).items() if v not in (None, "", [])}
+        if not isinstance(args, dict):
+            args = {}
+        args = {k: v for k, v in args.items() if v not in (None, "", [])}
         if name not in self._impl:
             return ToolResult(name, args, False, error=f"Unknown tool '{name}'. Available: {', '.join(TOOL_NAMES)}",
                               llm_view=_j({"error": f"unknown tool {name}"}))
@@ -183,7 +185,10 @@ class ToolExecutor:
             return self._impl[name](**args)
         except bm.NotFoundError as e:
             return ToolResult(name, args, False, error=str(e), llm_view=_j({"error": str(e)}))
-        except TypeError as e:
+        except bm.InvalidInputError as e:
+            return ToolResult(name, args, False, error=str(e), llm_view=_j({"error": str(e)}))
+        except (TypeError, ValueError, ZeroDivisionError, AttributeError, KeyError) as e:
+            # Arguments come from a language model: report bad ones as a tool error it can recover from.
             return ToolResult(name, args, False, error=f"Bad arguments: {e}", llm_view=_j({"error": f"bad arguments: {e}"}))
 
     # ---- implementations -------------------------------------------------------------------
@@ -195,6 +200,16 @@ class ToolExecutor:
             return int(year)
         except (TypeError, ValueError):
             return None
+
+    @staticmethod
+    def _bool(v: Any, default: bool = True) -> bool:
+        if isinstance(v, bool):
+            return v
+        if isinstance(v, (int, float)):
+            return bool(v)
+        if isinstance(v, str):
+            return v.strip().lower() not in ("false", "0", "no", "off", "")
+        return default
 
     @staticmethod
     def _ccn(ccn: Any) -> str:
@@ -247,7 +262,7 @@ class ToolExecutor:
     def _rank(self, kpi: str, year: Any = None, state: str | None = None, facility_type: str | None = None,
               min_beds: int = 0, top_n: int = 10, best_first: bool = True, **_: Any) -> ToolResult:
         d = bm.rank(self.store, kpi, self._year(year), state, facility_type, int(min_beds or 0),
-                    min(int(top_n or 10), 25), bool(best_first))
+                    min(int(top_n or 10), 25), self._bool(best_first))
         return ToolResult("rank_hospitals", {"kpi": kpi, "year": year, "state": state, "facility_type": facility_type,
                                              "min_beds": min_beds, "top_n": top_n, "best_first": best_first},
                           True, d, _j(_view_rank(d)), [d["source"]])

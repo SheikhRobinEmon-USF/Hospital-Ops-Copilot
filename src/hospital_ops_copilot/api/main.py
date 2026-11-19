@@ -20,7 +20,6 @@ from ..analytics.kpis import KPIS
 from ..analytics.store import get_store
 from ..config import get_settings
 from ..llm.agent import Copilot
-from ..llm.ollama_client import OllamaClient
 
 app = FastAPI(
     title="Hospital Ops Copilot API",
@@ -68,6 +67,8 @@ def _wrap(fn, *args, **kwargs):
         return fn(*args, **kwargs)
     except bm.NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
+    except bm.InvalidInputError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @app.get("/health")
@@ -86,14 +87,14 @@ def kpis() -> list[dict]:
 
 
 @app.get("/hospitals/search")
-def search(q: str = Query(..., min_length=2), state: str | None = None, limit: int = 10) -> list[dict]:
-    return get_store().search(q, state=state, limit=min(limit, 50))
+def search(q: str = Query(..., min_length=2), state: str | None = None, limit: int = Query(10, ge=1, le=50)) -> list[dict]:
+    return get_store().search(q, state=state, limit=limit)
 
 
 @app.get("/models")
 def models() -> dict:
     s = get_settings()
-    client = OllamaClient()
+    client = copilot().client
     available = client.available() and s.llm_backend != "offline"
     names = []
     if available:
@@ -150,8 +151,8 @@ def scenario(ccn: str, body: ScenarioIn) -> dict:
 
 @app.get("/rankings/{kpi}")
 def rankings(kpi: str, year: int | None = None, state: str | None = None, facility_type: str | None = None,
-             min_beds: int = 0, top_n: int = 10, best_first: bool = True) -> dict:
-    return _cached(bm.rank, get_store(), kpi, year, state, facility_type, min_beds, min(top_n, 100), best_first)
+             min_beds: int = Query(0, ge=0), top_n: int = Query(10, ge=1, le=100), best_first: bool = True) -> dict:
+    return _cached(bm.rank, get_store(), kpi, year, state, facility_type, min_beds, top_n, best_first)
 
 
 class AskIn(BaseModel):
@@ -162,8 +163,13 @@ class AskIn(BaseModel):
     offline: bool = False
 
 
+class HistoryItem(BaseModel):
+    role: str
+    content: str
+
+
 class StreamIn(AskIn):
-    history: list[dict] = Field(default_factory=list)
+    history: list[HistoryItem] = Field(default_factory=list)
 
 
 @app.post("/ask/stream")
@@ -176,7 +182,7 @@ def ask_stream(body: StreamIn) -> StreamingResponse:
     def events():
         try:
             for ev in c.stream(body.question, context_ccn=body.ccn, context_year=body.year,
-                               history=body.history, force_offline=body.offline):
+                               history=[h.model_dump() for h in body.history], force_offline=body.offline):
                 yield f"data: {json.dumps(ev, default=str)}\n\n"
         except Exception as e:  # noqa: BLE001
             yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"

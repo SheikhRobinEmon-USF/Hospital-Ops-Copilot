@@ -8,7 +8,7 @@ import { HospitalHeader, Overview } from "@/components/sections/overview";
 import { ErrorState, Skeleton } from "@/components/ui/primitives";
 import { Info, Loader2, X } from "lucide-react";
 
-import { API_URL, ENGINE } from "@/lib/api";
+import { API_URL, ApiError, ENGINE } from "@/lib/api";
 import { RUN_LOCALLY_URL, useCopilotMode } from "@/lib/mode";
 import { useBenchmark, useHealth, useInsights, useProfile } from "@/lib/queries";
 import { useWorkspace, WorkspaceProvider } from "@/lib/workspace";
@@ -98,14 +98,38 @@ function FirstViewSkeleton() {
  * header whose pills wrap differently at every width would be. Later changes keep previous data on screen.
  */
 function FirstView({ children }: { children: React.ReactNode }) {
-  const { section } = useWorkspace();
+  const { section, year, set } = useWorkspace();
   const profile = useProfile();
   const bm = useBenchmark();
   const insights = useInsights();
   const health = useHealth();
+  const [missingYear, setMissingYear] = useState<number | null>(null);
+  const yearNotFound = profile.isError && year !== undefined && profile.error instanceof ApiError && profile.error.status === 404;
+  useEffect(() => {
+    // A shared link can name a year this hospital did not report: fall back to its latest report.
+    if (yearNotFound) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setMissingYear(year ?? null);
+      set({ year: undefined });
+    }
+  }, [yearNotFound, year, set]);
   const waiting = !health.data || !profile.data || (section === "overview" && (!bm.data || !insights.data) && !bm.isError && !insights.isError);
-  if (profile.isError) return <ErrorState title="Could not load this hospital" detail={String(profile.error)} />;
-  return waiting ? <FirstViewSkeleton /> : <>{children}</>;
+  if (profile.isError && !yearNotFound) return <ErrorState title="Could not load this hospital" detail={String(profile.error)} />;
+  if (waiting || yearNotFound) return <FirstViewSkeleton />;
+  return (
+    <>
+      {missingYear !== null && (
+        <p role="status" className="flex items-center gap-2 rounded-xl bg-amber-500/[0.07] px-4 py-2 text-sm ring-1 ring-inset ring-amber-500/25">
+          <Info className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+          This hospital has no {missingYear} cost report, so the latest one is shown.
+          <button onClick={() => setMissingYear(null)} aria-label="Dismiss" className="ml-auto rounded p-0.5 text-muted hover:text-foreground">
+            <X className="size-4" />
+          </button>
+        </p>
+      )}
+      {children}
+    </>
+  );
 }
 
 const HOSTED = !/localhost|127\.0\.0\.1/.test(API_URL);

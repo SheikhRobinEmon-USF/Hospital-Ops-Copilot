@@ -279,7 +279,13 @@ const serverApi = {
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
     });
-    if (!res.ok) throw new ApiError(res.status, res.statusText);
+    if (!res.ok) {
+      let detail = res.statusText;
+      try {
+        detail = (await res.json()).detail ?? detail;
+      } catch {}
+      throw new ApiError(res.status, typeof detail === "string" ? detail : res.statusText);
+    }
     return res.json();
   },
 };
@@ -296,6 +302,7 @@ const browserApi: Api = new Proxy({} as Api, {
         return await (engine.browserApi as any)[method](...args);
       } catch (e) {
         if (e instanceof engine.NotFoundError) throw new ApiError(404, e.message);
+        if (e instanceof engine.InvalidInputError) throw new ApiError(400, e.message);
         throw e;
       }
     },

@@ -138,6 +138,9 @@ QUESTIONS: list[tuple[str, str | None]] = [
     ("Why is a city hospital labeled rural?", None),
     ("How does our occupancy rate compare?", "240010"),
     ("Tell me about hospital 330125", None),
+    ("What if volume falls 100%?", "100128"),
+    ("What if volume grows 0.0000001%?", "100128"),
+    ("What if payment rates rise 1250000%?", "100128"),
     ("How do we compare?", None),
 ]
 
@@ -164,7 +167,7 @@ def build_fixtures(store: DataStore, seed: int = 7, n_random: int = 30) -> dict:
         try:
             expected: Any = func()
             error = None
-        except bm.NotFoundError as e:
+        except (bm.NotFoundError, bm.InvalidInputError) as e:
             expected, error = None, str(e)
         cases.append({"fn": fn, "args": args, "expected": json.loads(_json(expected)) if expected is not None else None,
                       "error": error})
@@ -185,13 +188,18 @@ def build_fixtures(store: DataStore, seed: int = 7, n_random: int = 30) -> dict:
                  "variable_cost_share": rng.choice([0.35, 0.5])}
         add("scenario", {"ccn": ccn, "year": None, **lever}, lambda c=ccn, lv=lever: bm.scenario(store, c, None, **lv))
     add("profile", {"ccn": "999999", "year": None}, lambda: _profile(store, "999999", None))
+    for lv in ({"volume_change_pct": -100.0}, {"rate_change_pct": -150.0}, {"volume_change_pct": -99.5}):
+        args = {"ccn": DEFAULT_CCN, "year": None, "volume_change_pct": 0, "rate_change_pct": 0, "opex_change_pct": 0,
+                "labor_cost_change_pct": 0, "variable_cost_share": 0.35, **lv}
+        add("scenario", args, lambda a=args: bm.scenario(store, a["ccn"], None, a["volume_change_pct"], a["rate_change_pct"],
+                                                         a["opex_change_pct"], a["labor_cost_change_pct"], a["variable_cost_share"]))
 
     for kpi, kw in [("operating_margin", {"state": "FL", "min_beds": 200, "year": 2023}),
                     ("opex_per_adj_discharge", {"facility_type": "STH", "min_beds": 100}),
                     ("days_in_ar", {"state": "TX", "best_first": False}),
                     ("occupancy_rate", {"facility_type": "CAH", "top_n": 25}),
                     ("alos", {"state": "MN", "facility_type": "STH", "min_beds": 25, "year": 2022}),
-                    ("medicaid_day_share", {})]:
+                    ("medicaid_day_share", {}), ("total_margin", {"top_n": 0})]:
         args = {"kpi": kpi, "year": None, "state": None, "facility_type": None, "min_beds": 0, "top_n": 10, "best_first": True, **kw}
         add("rank", args, lambda a=args: bm.rank(store, a["kpi"], a["year"], a["state"], a["facility_type"], a["min_beds"],
                                                  a["top_n"], a["best_first"]))

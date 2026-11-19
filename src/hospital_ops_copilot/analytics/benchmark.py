@@ -31,6 +31,10 @@ class NotFoundError(LookupError):
     pass
 
 
+class InvalidInputError(ValueError):
+    """A request that cannot be computed, such as a what-if that removes all revenue."""
+
+
 def _clean(v):
     if v is None:
         return None
@@ -346,6 +350,8 @@ def scenario(store: DataStore, ccn: str, year: int | None = None, volume_change_
     npr, opex, sal = _clean(r["net_patient_revenue"]), _clean(r["operating_expense"]), _clean(r["salaries"]) or 0.0
     if not npr or not opex:
         raise NotFoundError("Net patient revenue or operating expense is missing for this report.")
+    if volume_change_pct <= -100 or rate_change_pct <= -100:
+        raise InvalidInputError("Volume and payment rate changes must be greater than -100%.")
     vol, rate, oc, lc = (x / 100.0 for x in (volume_change_pct, rate_change_pct, opex_change_pct, labor_cost_change_pct))
     new_rev = npr * (1 + vol) * (1 + rate)
     new_opex = opex + opex * variable_cost_share * vol + sal * lc + opex * oc
@@ -376,6 +382,7 @@ def rank(store: DataStore, kpi: str, year: int | None = None, state: str | None 
     if kpi not in KPI_BY_KEY:
         raise NotFoundError(f"Unknown KPI '{kpi}'. Options: {', '.join(KPI_BY_KEY)}")
     k = KPI_BY_KEY[kpi]
+    top_n = max(1, int(top_n))
     year = int(year or store.latest_year)
     where = ["year = ?", "full_year", f"{kpi} IS NOT NULL", "coalesce(beds, 0) >= ?"]
     params: list = [year, min_beds]

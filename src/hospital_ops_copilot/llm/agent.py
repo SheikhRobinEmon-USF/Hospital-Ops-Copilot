@@ -184,7 +184,8 @@ class Copilot:
             row = self.store.get(context_ccn, context_year)
             ctx_name = row["name"] if row is not None else None
         messages = [{"role": "system", "content": system_prompt(self.store.years, context_ccn, ctx_name, context_year)}]
-        messages += [{"role": m["role"], "content": m["content"]} for m in history[-6:] if m.get("role") in ("user", "assistant")]
+        messages += [{"role": m["role"], "content": str(m["content"])} for m in history[-6:]
+                     if m.get("role") in ("user", "assistant") and m.get("content")]
         messages.append({"role": "user", "content": question})
         ans = AgentAnswer(question, "", "ollama", self.model)
         nudged = False

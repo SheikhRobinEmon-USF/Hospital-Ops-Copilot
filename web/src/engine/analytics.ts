@@ -21,6 +21,9 @@ const RELAX_ORDER = ["state", "ownership", "urban_rural", "bed_band"];
 
 export class NotFoundError extends Error {}
 
+/** A request that cannot be computed, such as a what-if that removes all revenue (Python InvalidInputError). */
+export class InvalidInputError extends Error {}
+
 /* --------------------------------------------------------------------- formatting (kpis.py) */
 
 export function formatValue(ds: Dataset, key: string, value: number | null | undefined): string {
@@ -402,6 +405,7 @@ export function scenario(ds: Dataset, ccn: string, year: number | null | undefin
   const opex = num(r, "operating_expense");
   const sal = num(r, "salaries") || 0.0;
   if (!npr || !opex) throw new NotFoundError("Net patient revenue or operating expense is missing for this report.");
+  if (volumeChangePct <= -100 || rateChangePct <= -100) throw new InvalidInputError("Volume and payment rate changes must be greater than -100%.");
   const [vol, rate, oc, lc] = [volumeChangePct, rateChangePct, opexChangePct, laborCostChangePct].map((x) => x / 100.0);
   const newRev = npr * (1 + vol) * (1 + rate);
   const newOpex = opex + opex * variableCostShare * vol + sal * lc + opex * oc;
@@ -423,6 +427,7 @@ export function scenario(ds: Dataset, ccn: string, year: number | null | undefin
 export function rank(ds: Dataset, kpi: string, year?: number | null, state?: string | null, facilityType?: string | null, minBeds = 0, topN = 10, bestFirst = true) {
   const k = ds.kpiByKey.get(kpi);
   if (!k) throw new NotFoundError(`Unknown KPI '${kpi}'. Options: ${ds.kpis.map((x) => x.key).join(", ")}`);
+  topN = Math.max(1, Math.trunc(topN));
   const y = Number(year || ds.years.at(-1));
   const st = state ? state.toUpperCase() : null;
   const ft = facilityType ? facilityType.toUpperCase() : null;
