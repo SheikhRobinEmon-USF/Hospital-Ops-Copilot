@@ -13,7 +13,7 @@ import { decode, type Dataset, type KpiDefLite } from "./data";
 import { type Chunk, DocIndex } from "./docs";
 import { finalAnswer, offlineAnswer, Tools, toolSummary } from "./offline";
 
-export { NotFoundError } from "./analytics";
+export { InvalidInputError, NotFoundError } from "./analytics";
 
 const BASE = (process.env.NEXT_PUBLIC_BASE_PATH ?? "").replace(/\/$/, "");
 const dataUrl = (file: string) => `${BASE}/data/${file}`;

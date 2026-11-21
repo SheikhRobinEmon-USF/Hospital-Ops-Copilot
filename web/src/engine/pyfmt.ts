@@ -69,13 +69,19 @@ export function pySigned(x: number, digits: number): string {
   return s.startsWith("-") ? s : `+${s}`;
 }
 
-/** Python f"{x:+g}" for the small lever values used in scenario text. */
+/** Python f"{x:+g}": 6 significant digits, exponent form below 1e-4 or from 1e6, trailing zeros removed. */
 export function pyPlusG(x: number): string {
-  let s: string;
-  if (Number.isInteger(x)) s = String(x);
-  else s = String(Number(x.toPrecision(6)));
-  if (Object.is(x, -0)) s = "-0";
-  return x >= 0 && !Object.is(x, -0) ? `+${s}` : s;
+  const sign = x < 0 || Object.is(x, -0) ? "-" : "+";
+  const a = Math.abs(x);
+  if (a === 0) return `${sign}0`;
+  const [mant, expStr] = a.toExponential(5).split("e");
+  const exp = Number(expStr);
+  const strip = (m: string) => (m.includes(".") ? m.replace(/0+$/, "").replace(/\.$/, "") : m);
+  if (exp < -4 || exp >= 6) {
+    const e = Math.abs(exp).toString().padStart(2, "0");
+    return `${sign}${strip(mant)}e${exp < 0 ? "-" : "+"}${e}`;
+  }
+  return `${sign}${strip(a.toFixed(Math.max(0, 5 - exp)))}`;
 }
 
 /** Python f"{x:.0%}". */

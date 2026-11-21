@@ -189,3 +189,46 @@ def test_streaming_agent_with_fake_model(store, retriever, sample_ccn):
     types = [e["type"] for e in events]
     assert types[0] == "start" and "tool_start" in types and "token" in types and types[-1] == "final"
     assert events[-1]["tools_called"] == ["benchmark_hospital"]
+
+
+def test_scenario_rejects_total_revenue_loss(store, sample_ccn):
+    import pytest
+
+    from hospital_ops_copilot.analytics import benchmark as bm
+
+    with pytest.raises(bm.InvalidInputError):
+        bm.scenario(store, sample_ccn, 2023, volume_change_pct=-100)
+    with pytest.raises(bm.InvalidInputError):
+        bm.scenario(store, sample_ccn, 2023, rate_change_pct=-120)
+
+
+def test_tool_errors_do_not_crash_the_agent(store, retriever, sample_ccn):
+    ex = ToolExecutor(store, retriever)
+    r = ex.run("run_scenario", {"ccn": sample_ccn, "volume_change_pct": -100})
+    assert not r.ok and "-100%" in r.error
+    assert not ex.run("run_scenario", {"ccn": sample_ccn, "volume_change_pct": "five"}).ok
+    assert not ex.run("rank_hospitals", {"kpi": "operating_margin", "top_n": "ten"}).ok
+    assert not ex.run("benchmark_hospital", ["not", "a", "dict"]).ok
+    c = Copilot(store=store, retriever=retriever, model="none")
+    a = c.ask("What if volume falls 100%?", context_ccn=sample_ccn, force_offline=True)
+    assert "-100%" in a.answer and a.tool_results and not a.tool_results[0].ok
+
+
+def test_rank_tool_parses_string_booleans(store, retriever):
+    ex = ToolExecutor(store, retriever)
+    best = ex.run("rank_hospitals", {"kpi": "operating_margin", "best_first": True}).data["results"][0]["value"]
+    worst = ex.run("rank_hospitals", {"kpi": "operating_margin", "best_first": "false"}).data["results"][0]["value"]
+    assert worst < best
+
+
+def test_api_validates_inputs(monkeypatch, store, retriever, sample_ccn):
+    from hospital_ops_copilot.api import main
+
+    monkeypatch.setattr(main, "get_store", lambda: store)
+    monkeypatch.setattr(main, "_copilot", Copilot(store=store, retriever=retriever, model="none"))
+    client = TestClient(main.app)
+    assert client.get("/rankings/operating_margin", params={"top_n": -5}).status_code == 422
+    assert client.get("/hospitals/search", params={"q": "sample", "limit": -3}).status_code == 422
+    r = client.post(f"/hospitals/{sample_ccn}/scenario", json={"volume_change_pct": -100})
+    assert r.status_code == 400 and "-100%" in r.json()["detail"]
+    assert client.post("/ask/stream", json={"question": "How do we compare?", "history": [{"role": "user"}]}).status_code == 422

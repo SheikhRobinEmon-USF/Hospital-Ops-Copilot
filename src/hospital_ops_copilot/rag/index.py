@@ -90,6 +90,12 @@ class Retriever:
         self._vectors: np.ndarray | None = None
         self._dense_failed = False
 
+    def _ollama(self) -> OllamaClient:
+        """One client for the retriever's lifetime (creating one per query leaked connection pools)."""
+        if self.client is None:
+            self.client = OllamaClient(self.settings)
+        return self.client
+
     def _doc_texts(self) -> list[str]:
         _, dp = _prefixes(self.embed_model)
         return [f"{dp}{c.title}\n{c.text}" for c in self.chunks]
@@ -103,7 +109,7 @@ class Retriever:
         if path.exists():
             self._vectors = np.load(path)
             return self._vectors
-        client = self.client or OllamaClient(self.settings)
+        client = self._ollama()
         try:
             vecs = np.array(client.embed(self._doc_texts(), model=self.embed_model), dtype=np.float32)
         except OllamaError as e:
@@ -123,7 +129,7 @@ class Retriever:
         if vecs is None:
             return None
         qp, _ = _prefixes(self.embed_model)
-        client = self.client or OllamaClient(self.settings)
+        client = self._ollama()
         try:
             q = np.array(client.embed([qp + query], model=self.embed_model)[0], dtype=np.float32)
         except OllamaError as e:

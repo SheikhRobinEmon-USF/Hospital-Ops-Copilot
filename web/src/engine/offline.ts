@@ -27,12 +27,21 @@ const yearOf = (y: unknown): number | null => {
   return Number.isNaN(n) ? null : n;
 };
 
+/** Parse a boolean argument the way the Python tools do ("false", "0", "no", "off" are false). */
+export function asBool(v: unknown, fallback = true): boolean {
+  if (typeof v === "boolean") return v;
+  if (typeof v === "number") return v !== 0;
+  if (typeof v === "string") return !["false", "0", "no", "off", ""].includes(v.trim().toLowerCase());
+  return fallback;
+}
+
 export class Tools {
   constructor(private ds: Dataset, private docs: DocIndex) {}
 
   run(name: string, rawArgs: Record<string, unknown>): ToolResult {
     const args: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(rawArgs)) {
+    const input = rawArgs && typeof rawArgs === "object" && !Array.isArray(rawArgs) ? rawArgs : {};
+    for (const [k, v] of Object.entries(input)) {
       if (v === null || v === undefined || v === "" || (Array.isArray(v) && v.length === 0)) continue;
       args[k] = v;
     }
@@ -77,7 +86,7 @@ export class Tools {
           const facility = (args.facility_type as string | undefined) ?? null;
           const minBeds = Number(args.min_beds ?? 0);
           const topN = Number(args.top_n ?? 10);
-          const best = args.best_first === undefined ? true : Boolean(args.best_first);
+          const best = asBool(args.best_first);
           const d = A.rank(ds, String(args.kpi), yearOf(year), state, facility, Math.trunc(minBeds || 0), Math.min(Math.trunc(topN || 10), 25), best);
           return ok({ kpi: args.kpi, year, state, facility_type: facility, min_beds: minBeds, top_n: topN, best_first: best }, d, [d.source]);
         }
@@ -89,8 +98,9 @@ export class Tools {
           return { name, args, ok: false, data: null, citations: [], error: `Unknown tool '${name}'.` };
       }
     } catch (e) {
-      if (e instanceof A.NotFoundError) return { name, args, ok: false, data: null, citations: [], error: e.message };
-      throw e;
+      if (e instanceof A.NotFoundError || e instanceof A.InvalidInputError) return { name, args, ok: false, data: null, citations: [], error: e.message };
+      // Bad arguments become a tool error the caller can recover from, as in Python.
+      return { name, args, ok: false, data: null, citations: [], error: `Bad arguments: ${e instanceof Error ? e.message : String(e)}` };
     }
   }
 }

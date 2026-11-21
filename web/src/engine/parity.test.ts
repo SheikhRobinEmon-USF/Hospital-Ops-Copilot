@@ -11,7 +11,7 @@ import * as A from "./analytics";
 import { decode, type Dataset } from "./data";
 import { DocIndex } from "./docs";
 import { finalAnswer, offlineAnswer, Tools } from "./offline";
-import { pyFixed } from "./pyfmt";
+import { pyFixed, pyPlusG } from "./pyfmt";
 
 const root = resolve(__dirname, "../..");
 const dataDir = resolve(root, "public/data");
@@ -94,7 +94,7 @@ describe.skipIf(!ready)("parity with Python", () => {
           if (d) failures.push(`${c.fn} ${JSON.stringify(c.args)}: ${d}`);
         }
       } catch (e) {
-        if (!(c.error && e instanceof A.NotFoundError && e.message === c.error)) failures.push(`${c.fn} ${JSON.stringify(c.args)}: threw ${e}`);
+        if (!(c.error && (e instanceof A.NotFoundError || e instanceof A.InvalidInputError) && e.message === c.error)) failures.push(`${c.fn} ${JSON.stringify(c.args)}: threw ${e}`);
       }
     }
     expect(cases.length).toBeGreaterThan(500);
@@ -108,5 +108,10 @@ describe("python formatting", () => {
     expect(pyFixed(27.5, 0)).toBe("28");
     expect(pyFixed(2.675, 2)).toBe("2.67");
     expect(pyFixed(-0.04, 1)).toBe("-0.0");
+    expect(pyPlusG(5)).toBe("+5");
+    expect(pyPlusG(-3.5)).toBe("-3.5");
+    expect(pyPlusG(1e-7)).toBe("+1e-07");
+    expect(pyPlusG(1250000)).toBe("+1.25e+06");
+    expect(pyPlusG(0.0001)).toBe("+0.0001");
   });
 });

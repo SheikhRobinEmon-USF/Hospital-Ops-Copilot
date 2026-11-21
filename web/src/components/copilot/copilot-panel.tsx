@@ -130,7 +130,8 @@ export function CopilotPanel() {
         for await (const ev of streamAsk({ question: q, ccn, year, model: models.data?.ollama_available ? activeModel : undefined, history }, ctrl.signal)) {
           switch (ev.type) {
             case "start":
-              update(id, (t) => ({ ...t, backend: ev.backend, model: ev.model }));
+              // A second "start" means the server fell back to the offline analyst: drop the abandoned steps.
+              update(id, (t) => ({ ...t, backend: ev.backend, model: ev.model, steps: t.backend ? [] : t.steps }));
               break;
             case "tool_start":
               update(id, (t) => ({ ...t, steps: [...t.steps, { name: ev.name, args: ev.args, status: "running" }] }));
